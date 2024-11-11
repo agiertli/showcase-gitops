@@ -12,7 +12,7 @@ users:
   - name: user6
     seed: false
   - name: user7
-    seed: true
+    seed: false
   - name: user8
     seed: false
   - name: user9
