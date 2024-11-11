@@ -15,6 +15,7 @@ spec:
     - apiGroups:
       - "*"
       kinds:
+      - ConsoleLink
       - Kafka
       - Securesign
       - Fulcio

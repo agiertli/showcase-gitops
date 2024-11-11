@@ -4,58 +4,64 @@ metadata:
   namespace: openshift-gitops
   name: custom-argocd-role
 rules:
-- apiGroups: 
-   - kafka.strimzi.io
-  resources: 
-    - kafka
-  verbs: 
-   - '*'
-- apiGroups: 
-   - .rhtas.redhat.com
-  resources: 
-    - securesign
-  verbs: 
-   - '*'
-- apiGroups: 
-   - keycloak.org
-  resources: 
-    - keycloaks
-    - keycloakclients
-    - keycloakrealms
-    - keycloakusers
-  verbs: 
-   - '*'
-- apiGroups: 
-   - sonatype.com
-  resources: 
-    - NexusRepo
-    - nexusrepos
-  verbs: 
-   - '*'
-- apiGroups: 
-   - redhatcop.redhat.io
-  resources: 
-    - namespaceconfigs
-    - namespaceconfig
-  verbs: 
-   - '*'
-- apiGroups:
-  - org.eclipse.che
-  resources:
-  - checlusters
-  - checluster
-  verbs:
-  - '*'  
-- apiGroups:
-  - controller.devfile.io
-  resources:
-  - devworkspaceoperatorconfigs
-  verbs:
-  - '*'          
-- apiGroups:
-  - workspace.devfile.io
-  resources:
-  - devworkspace
-  - devworkspaces
-  verbs:
-  - '*'     
+  - apiGroups:
+      - console.openshift.io/v1
+    resources:
+      - consolelink
+    verbs:
+      - "*"
+  - apiGroups:
+      - kafka.strimzi.io
+    resources:
+      - kafka
+    verbs:
+      - "*"
+  - apiGroups:
+      - .rhtas.redhat.com
+    resources:
+      - securesign
+    verbs:
+      - "*"
+  - apiGroups:
+      - keycloak.org
+    resources:
+      - keycloaks
+      - keycloakclients
+      - keycloakrealms
+      - keycloakusers
+    verbs:
+      - "*"
+  - apiGroups:
+      - sonatype.com
+    resources:
+      - NexusRepo
+      - nexusrepos
+    verbs:
+      - "*"
+  - apiGroups:
+      - redhatcop.redhat.io
+    resources:
+      - namespaceconfigs
+      - namespaceconfig
+    verbs:
+      - "*"
+  - apiGroups:
+      - org.eclipse.che
+    resources:
+      - checlusters
+      - checluster
+    verbs:
+      - "*"
+  - apiGroups:
+      - controller.devfile.io
+    resources:
+      - devworkspaceoperatorconfigs
+    verbs:
+      - "*"
+  - apiGroups:
+      - workspace.devfile.io
+    resources:
+      - devworkspace
+      - devworkspaces
+    verbs:
+      - "*"
