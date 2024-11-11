@@ -1,24 +1,24 @@
 users:
   - name: user1
-    seed: true
+    seed: false
   - name: user2
-    seed: true
+    seed: false
   - name: user3
-    seed: true
+    seed: false
   - name: user4
-    seed: true
+    seed: false
   - name: user5
-    seed: true
+    seed: false
   - name: user6
-    seed: true
+    seed: false
   - name: user7
     seed: true
   - name: user8
-    seed: true
+    seed: false
   - name: user9
-    seed: true
+    seed: false
   - name: user10
-    seed: true
+    seed: false
   - name: user11
     seed: false
   - name: user12
@@ -78,8 +78,8 @@ users:
   - name: user39
     seed: false
   - name: user40
-    seed: true
+    seed: false
   - name: admin
-    seed: true
+    seed: false
 
 baseDomain: apps.cluster-qqwq7.qqwq7.sandbox2959.opentlc.com
