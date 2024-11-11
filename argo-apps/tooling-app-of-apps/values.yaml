@@ -7,46 +7,45 @@ spec:
 argo:
   namespace: openshift-gitops
   destination: tooling
-  project: showcase-gitops    
+  project: showcase-gitops
 
 applications:
+  - name: argocd-rbac
+    path: rbac
+    destination: openshift-gitops
+    enabled: true
 
-   - name: argocd-rbac
-     path: rbac
-     destination: openshift-gitops
-     enabled: true
+  - name: keycloak-install
+    path: keycloak-install
+    destination: keycloak-system
+    enabled: false
 
-   - name: keycloak-install
-     path: keycloak-install
-     destination: keycloak-system
-     enabled: false
+  - name: rhtas-install
+    path: rhtas-install
+    destination: rhtas-system
+    enabled: false
 
-   - name: rhtas-install
-     path: rhtas-install
-     destination: rhtas-system
-     enabled: false
+  - name: devspaces-install
+    path: devspaces-install
+    destination: devspaces
+    enabled: true
 
-   - name: devspaces-install
-     path: devspaces-install
-     destination: devspaces
-     enabled: true
-     
-   - name: namespace-config
-     path: namespace-operator
-     destination: namespace-config-operator 
-     enabled: false
+  - name: namespace-config
+    path: namespace-operator
+    destination: namespace-config-operator
+    enabled: false
 
-   - name: openshift-pipelines
-     path: tekton-install
-     destination: openshift-pipelines
-     enabled: false     
-    
-   - name: workshop
-     path: workshop-setup
-     destination: openshift-gitops
-     enabled: false    
+  - name: openshift-pipelines
+    path: tekton-install
+    destination: openshift-pipelines
+    enabled: false
 
-   - name: strimzi
-     path: kafka
-     destination: strimzi
-     enabled: false  
+  - name: workshop
+    path: workshop-setup
+    destination: openshift-gitops
+    enabled: true
+
+  - name: strimzi
+    path: kafka
+    destination: strimzi
+    enabled: false

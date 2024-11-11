@@ -1,85 +1,85 @@
 users:
- - name: user1
-   seed: true
- - name: user2
-   seed: true
- - name: user3
-   seed: true
- - name: user4
-   seed: true
- - name: user5
-   seed: true
- - name: user6
-   seed: true
- - name: user7
-   seed: true
- - name: user8
-   seed: true
- - name: user9
-   seed: true
- - name: user10
-   seed: true
- - name: user11
-   seed: false
- - name: user12
-   seed: false
- - name: user13
-   seed: false
- - name: user14
-   seed: false
- - name: user15
-   seed: false
- - name: user16
-   seed: false
- - name: user17
-   seed: false
- - name: user18
-   seed: false
- - name: user19
-   seed: false
- - name: user20
-   seed: false
- - name: user21
-   seed: false
- - name: user22
-   seed: false
- - name: user23
-   seed: false
- - name: user24
-   seed: false
- - name: user25
-   seed: false
- - name: user26
-   seed: false
- - name: user27
-   seed: false
- - name: user28
-   seed: false
- - name: user29
-   seed: false
- - name: user30
-   seed: false
- - name: user31
-   seed: false
- - name: user32
-   seed: false
- - name: user33
-   seed: false
- - name: user34
-   seed: false
- - name: user35
-   seed: false
- - name: user36
-   seed: false
- - name: user37
-   seed: false
- - name: user38
-   seed: false 
- - name: user39
-   seed: false 
- - name: user40
-   seed: true      
- - name: admin
-   seed: true
+  - name: user1
+    seed: true
+  - name: user2
+    seed: true
+  - name: user3
+    seed: true
+  - name: user4
+    seed: true
+  - name: user5
+    seed: true
+  - name: user6
+    seed: true
+  - name: user7
+    seed: true
+  - name: user8
+    seed: true
+  - name: user9
+    seed: true
+  - name: user10
+    seed: true
+  - name: user11
+    seed: false
+  - name: user12
+    seed: false
+  - name: user13
+    seed: false
+  - name: user14
+    seed: false
+  - name: user15
+    seed: false
+  - name: user16
+    seed: false
+  - name: user17
+    seed: false
+  - name: user18
+    seed: false
+  - name: user19
+    seed: false
+  - name: user20
+    seed: false
+  - name: user21
+    seed: false
+  - name: user22
+    seed: false
+  - name: user23
+    seed: false
+  - name: user24
+    seed: false
+  - name: user25
+    seed: false
+  - name: user26
+    seed: false
+  - name: user27
+    seed: false
+  - name: user28
+    seed: false
+  - name: user29
+    seed: false
+  - name: user30
+    seed: false
+  - name: user31
+    seed: false
+  - name: user32
+    seed: false
+  - name: user33
+    seed: false
+  - name: user34
+    seed: false
+  - name: user35
+    seed: false
+  - name: user36
+    seed: false
+  - name: user37
+    seed: false
+  - name: user38
+    seed: false
+  - name: user39
+    seed: false
+  - name: user40
+    seed: true
+  - name: admin
+    seed: true
 
-baseDomain: apps.cluster-stsmq.dynamic.redhatworkshops.io
+baseDomain: apps.cluster-qqwq7.qqwq7.sandbox2959.opentlc.com
