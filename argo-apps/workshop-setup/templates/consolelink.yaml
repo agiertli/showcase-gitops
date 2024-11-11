@@ -1,0 +1,12 @@
+apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: devspaces
+spec:
+  href: "https://devspaces.{{ $.Values.baseDomain}}"
+  location: ApplicationMenu
+  text: OpenShift Dev Spaces
+applicationMenu:
+  section: OpenShift Dev Spaces
+  # image that is 24x24 in size
+  imageURL: https://devspaces.{{ $.Values.baseDomain}}/dashboard/assets/branding/loader.svg
