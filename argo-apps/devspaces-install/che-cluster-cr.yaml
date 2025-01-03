@@ -8,6 +8,9 @@ metadata:
     argocd.argoproj.io/sync-wave: "3"
 spec:
   components:
+    devfileRegistry:
+      externalDevfileRegistries:
+        - url: "https://registry.devfile.io/"
     imagePuller:
       enable: true
       spec:
