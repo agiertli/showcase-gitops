@@ -49,7 +49,7 @@ spec:
       transaction.state.log.min.isr: 2
       default.replication.factor: 3
       min.insync.replicas: 2
-      inter.broker.protocol.version: '3.6'
+      inter.broker.protocol.version: '3.9'
     storage:
       type: ephemeral
     listeners:
@@ -65,7 +65,7 @@ spec:
         port: 9094
         tls: true
         type: route
-    version: 3.6.0
+    version: 3.9.0
     replicas: 3
   zookeeper:
     resources:
