@@ -43,9 +43,9 @@ applications:
   - name: workshop
     path: workshop-setup
     destination: openshift-gitops
-    enabled: true
+    enabled: false
 
   - name: strimzi
     path: kafka
     destination: strimzi
-    enabled: false
+    enabled: true

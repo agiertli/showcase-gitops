@@ -4,7 +4,7 @@ users:
   - name: user2
     seed: false
   - name: user3
-    seed: false
+    seed: true
   - name: user4
     seed: false
   - name: user5
