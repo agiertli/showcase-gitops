@@ -1,0 +1,12 @@
+apiVersion: broker.amq.io/v1beta1
+kind: ActiveMQArtemis
+metadata:
+  name: example-clustered-broker
+spec:
+  deploymentPlan:
+    size: 2
+    image: placeholder
+    requireLogin: false
+    persistenceEnabled: true
+    journalType: nio
+    messageMigration: true
