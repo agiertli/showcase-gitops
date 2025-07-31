@@ -3,6 +3,8 @@ kind: ActiveMQArtemis
 metadata:
   name: example-clustered-broker
 spec:
+  console:
+    expose: true
   deploymentPlan:
     size: 2
     image: placeholder
