@@ -48,6 +48,7 @@ spec:
       - ServiceAccount
       - Deployment
       - Route
+      - ActiveMQArtemis
       clusters:
       - "*"
   rbac:

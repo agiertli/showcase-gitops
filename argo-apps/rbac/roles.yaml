@@ -5,6 +5,12 @@ metadata:
   name: custom-argocd-role
 rules:
   - apiGroups:
+      - broker.amq.io/v1beta1
+    resources:
+      - activemqartemis
+    verbs:
+      - "*"
+  - apiGroups:
       - console.openshift.io/v1
     resources:
       - consolelink
