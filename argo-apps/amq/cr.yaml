@@ -3,6 +3,12 @@ kind: ActiveMQArtemis
 metadata:
   name: example-clustered-broker
 spec:
+  acceptors:
+    - name: mqtt-acceptor
+      exposeMode: route
+      expose: true
+      port: 5672
+      protocols: mqtt
   console:
     expose: true
   deploymentPlan:
