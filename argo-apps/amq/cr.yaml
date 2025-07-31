@@ -12,3 +12,4 @@ spec:
     persistenceEnabled: true
     journalType: nio
     messageMigration: true
+    clustered: true
