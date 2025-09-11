@@ -1,0 +1,234 @@
+apiVersion: workspace.devfile.io/v1alpha2
+kind: DevWorkspace
+metadata:
+  annotations:
+    che.eclipse.org/che-editor: che-incubator/che-code/latest
+    che.eclipse.org/devfile: |
+      schemaVersion: 2.2.0
+      metadata:
+        name: devsandbox-camel-labs
+        namespace: user5-dev
+      components:
+        - name: tools
+          container:
+            image: quay.io/devfile/universal-developer-image:ubi8-latest
+            memoryLimit: 3Gi
+            env:
+              - name: JAVA_HOME_TEST
+                value: /home/tooling/.sdkman/candidates/java/17.0.3-tem
+            endpoints:
+              - exposure: none
+                name: debug
+                protocol: tcp
+                targetPort: 5005
+              - exposure: public
+                name: 8080-tcp
+                protocol: http
+                targetPort: 8080
+            volumeMounts:
+              - name: m2
+                path: /home/user/.m2
+        - name: webapp
+          container:
+            image: quay.io/redhatintegration/tutorial-web-app:latest
+            env:
+              - name: NODE_ENV
+                value: production
+              - name: THREESCALE_WILDCARD_DOMAIN
+                value: local.localdomain
+              - name: OPENSHIFT_VERSION
+                value: '4'
+              - name: WALKTHROUGH_LOCATIONS
+                value: >-
+                  https://github.com/RedHat-Middleware-Workshops/devsandbox-camel-sb-simple?walkthroughsFolder=/docs/labs
+            endpoints:
+              - name: tutorial
+                exposure: public
+                targetPort: 5001
+                protocol: https
+                secure: true
+            memoryLimit: 512Mi
+            mountSources: true
+            volumeMounts:
+              - name: tutorial-storage
+                path: /opt/user-walkthroughs
+        - name: m2
+          volume:
+            size: 1G
+        - name: tutorial-storage
+          volume:
+            size: 256Mi
+      events:
+        postStart:
+          - set-camel-cli
+      commands:
+        - id: set-camel-cli
+          exec:
+            commandLine: >-
+              source ~/.bashrc && jbang trust add https://github.com/apache/camel/ &&
+              jbang app install camel@apache/camel
+            component: tools
+        - id: run-stub
+          exec:
+            commandLine: >-
+              JAVA_HOME=$JAVA_HOME_11 mvn -Dspring-boot.run.profiles=dev -s
+              configuration/settings.xml
+            component: tools
+            workingDir: ${PROJECT_SOURCE}/stubs/end1
+        - id: run-main
+          exec:
+            commandLine: >-
+              JAVA_HOME=$JAVA_HOME_11 mvn -Dspring-boot.run.profiles=dev -s
+              configuration/settings.xml
+            component: tools
+            workingDir: ${PROJECT_SOURCE}/level1simple
+        - id: send-request
+          exec:
+            commandLine: >-
+              curl -H 'content-type: application/json' -d '{"id":"123"}'
+              http://localhost:8080/camel/subscriber/details
+            component: tools
+            workingDir: ${PROJECT_SOURCE}
+        - id: debug-services
+          exec:
+            commandLine: >
+              JAVA_HOME=$JAVA_HOME_8 mvn spring-boot:run -DskipTests \
+
+              -Drun.jvmArguments="-Xdebug
+              -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
+            component: tools
+            workingDir: ${PROJECT_SOURCE}
+      projects:
+        - name: devsandbox-camel
+          git:
+            remotes:
+              origin: https://github.com/agiertli/devsandbox-camel.git
+      attributes:
+        dw.metadata.annotations:
+          che.eclipse.org/devfile-source: |
+            scm:
+              repo: https://github.com/agiertli/devsandbox-camel.git
+              fileName: devfile.yaml
+            factory:
+              params: url=https://github.com/agiertli/devsandbox-camel.git
+    che.eclipse.org/last-updated-timestamp: "2024-11-11T17:15:33.328Z"
+    controller.devfile.io/started-at: "1731345365060"
+  labels:
+    controller.devfile.io/creator: 733e390d-06d4-4e35-bdcd-0a2bdec2aee7
+  name: devsandbox-camel-labs
+  namespace: user5-dev
+spec:
+  contributions:
+    - kubernetes:
+        name: che-code-devsandbox-camel-labs
+      name: editor
+  routingClass: che
+  started: true
+  template:
+    attributes:
+      controller.devfile.io/devworkspace-config:
+        name: devworkspace-config
+        namespace: devspaces
+      controller.devfile.io/scc: container-build
+      controller.devfile.io/storage-type: per-workspace
+      dw.metadata.annotations:
+        che.eclipse.org/devfile-source: |
+          scm:
+            repo: https://github.com/agiertli/devsandbox-camel.git
+            fileName: devfile.yaml
+          factory:
+            params: url=https://github.com/agiertli/devsandbox-camel.git
+    commands:
+      - exec:
+          commandLine:
+            source ~/.bashrc && jbang trust add https://github.com/apache/camel/
+            && jbang app install camel@apache/camel
+          component: tools
+        id: set-camel-cli
+      - exec:
+          commandLine:
+            JAVA_HOME=$JAVA_HOME_11 mvn -Dspring-boot.run.profiles=dev -s
+            configuration/settings.xml
+          component: tools
+          workingDir: ${PROJECT_SOURCE}/stubs/end1
+        id: run-stub
+      - exec:
+          commandLine:
+            JAVA_HOME=$JAVA_HOME_11 mvn -Dspring-boot.run.profiles=dev -s
+            configuration/settings.xml
+          component: tools
+          workingDir: ${PROJECT_SOURCE}/level1simple
+        id: run-main
+      - exec:
+          commandLine:
+            'curl -H ''content-type: application/json'' -d ''{"id":"123"}''
+            http://localhost:8080/camel/subscriber/details'
+          component: tools
+          workingDir: ${PROJECT_SOURCE}
+        id: send-request
+      - exec:
+          commandLine: |
+            JAVA_HOME=$JAVA_HOME_8 mvn spring-boot:run -DskipTests \
+            -Drun.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
+          component: tools
+          workingDir: ${PROJECT_SOURCE}
+        id: debug-services
+    components:
+      - container:
+          endpoints:
+            - exposure: none
+              name: debug
+              protocol: tcp
+              targetPort: 5005
+            - exposure: public
+              name: 8080-tcp
+              protocol: http
+              targetPort: 8080
+          env:
+            - name: JAVA_HOME_TEST
+              value: /home/tooling/.sdkman/candidates/java/17.0.3-tem
+          image: quay.io/devfile/universal-developer-image:ubi8-latest
+          memoryLimit: 3Gi
+          sourceMapping: /projects
+          volumeMounts:
+            - name: m2
+              path: /home/user/.m2
+        name: tools
+      - container:
+          endpoints:
+            - exposure: public
+              name: tutorial
+              protocol: https
+              secure: true
+              targetPort: 5001
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: THREESCALE_WILDCARD_DOMAIN
+              value: local.localdomain
+            - name: OPENSHIFT_VERSION
+              value: "4"
+            - name: WALKTHROUGH_LOCATIONS
+              value: https://github.com/RedHat-Middleware-Workshops/devsandbox-camel-sb-simple?walkthroughsFolder=/docs/labs
+          image: quay.io/redhatintegration/tutorial-web-app:latest
+          memoryLimit: 512Mi
+          mountSources: true
+          sourceMapping: /projects
+          volumeMounts:
+            - name: tutorial-storage
+              path: /opt/user-walkthroughs
+        name: webapp
+      - name: m2
+        volume:
+          size: 1G
+      - name: tutorial-storage
+        volume:
+          size: 256Mi
+    events:
+      postStart:
+        - set-camel-cli
+    projects:
+      - git:
+          remotes:
+            origin: https://github.com/agiertli/devsandbox-camel.git
+        name: devsandbox-camel

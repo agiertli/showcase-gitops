@@ -28,6 +28,11 @@ applications:
   - name: devspaces-install
     path: devspaces-install
     destination: devspaces
+    enabled: false
+
+  - name: web-terminal
+    path: web-terminal
+    destination: web-terminal
     enabled: true
 
   - name: namespace-config
