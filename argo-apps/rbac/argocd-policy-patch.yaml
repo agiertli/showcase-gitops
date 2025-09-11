@@ -27,6 +27,7 @@ spec:
       - Keycloak
       - KeycloakClient
       - KeycloakRealm
+      - DevWorkspaceTemplate
       - ArgoCD
       - Application
       - AppProject
