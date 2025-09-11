@@ -8,6 +8,7 @@ rules:
       - workspace.devfile.io
     resources:
       - DevWorkspaceTemplate
+      - devworkspacetemplate
     verbs:
       - "*"
   - apiGroups:
