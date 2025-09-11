@@ -5,6 +5,12 @@ metadata:
   name: custom-argocd-role
 rules:
   - apiGroups:
+      - workspace.devfile.io
+    resources:
+      - DevWorkspaceTemplate
+    verbs:
+      - "*"
+  - apiGroups:
       - broker.amq.io/v1beta1
     resources:
       - activemqartemis
