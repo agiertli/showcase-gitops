@@ -53,9 +53,9 @@ applications:
   - name: strimzi
     path: kafka
     destination: strimzi
-    enabled: false
+    enabled: true
 
   - name: amq
     path: amq
     destination: amq
-    enabled: true
+    enabled: false
