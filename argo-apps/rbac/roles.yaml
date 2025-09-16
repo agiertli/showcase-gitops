@@ -27,6 +27,8 @@ rules:
       - kafka.strimzi.io
     resources:
       - kafka
+      - kafkanodepool
+      - kafkanodepools
       - kafkas
     verbs:
       - "*"

@@ -16,6 +16,7 @@ spec:
       - "*"
       kinds:
       - ConsoleLink
+      - KafkaNodePool
       - Kafka
       - Securesign
       - Fulcio

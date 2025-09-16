@@ -1,57 +1,33 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaNodePool
+metadata:
+  name: dual-role
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 3
+  roles:
+    - controller
+    - broker
+  storage:
+    type: jbod
+    volumes:
+      - id: 0
+        type: persistent-claim
+        size: 100Gi
+        deleteClaim: false
+        kraftMetadata: shared
 ---
+
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: my-cluster-2
-  namespace: strimzi
+  name: my-cluster
   annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    argocd.argoproj.io/sync-wave: "2"
+    strimzi.io/node-pools: enabled
+    strimzi.io/kraft: enabled
 spec:
-  entityOperator:
-    tlsSidecar:
-      resources:
-        requests:
-          memory: 128Mi
-          cpu: "0.1"
-        limits:
-          memory: 256Mi
-          cpu: "0.2"  
-    topicOperator:
-      resources:
-        requests:
-          memory: 128Mi
-          cpu: "0.1"
-        limits:
-          memory: 256Mi
-          cpu: "0.2"
-    userOperator:
-      resources:
-        requests:
-          memory: 128Mi
-          cpu: "0.1"
-        limits:
-          memory: 256Mi
-          cpu: "0.2"
   kafka:
-    resources:
-      limits:
-        cpu: 200m
-        memory: 800Mi
-        ephemeral-storage: 551Mi
-      requests:
-        cpu: 100m
-        memory: 521Mi
-        ephemeral-storage: 521Mi  
-    config:
-      offsets.topic.replication.factor: 3
-      transaction.state.log.replication.factor: 3
-      transaction.state.log.min.isr: 2
-      default.replication.factor: 3
-      min.insync.replicas: 2
-      inter.broker.protocol.version: '3.9'
-    storage:
-      type: ephemeral
     listeners:
       - name: plain
         port: 9092
@@ -61,22 +37,12 @@ spec:
         port: 9093
         type: internal
         tls: true
-      - name: externaltls
-        port: 9094
-        tls: true
-        type: route
-    version: 3.9.0
-    replicas: 3
-  zookeeper:
-    resources:
-      limits:
-        cpu: 200m
-        memory: 400Mi
-        ephemeral-storage: 256Mi
-      requests:
-        cpu: 100m
-        memory: 256Mi
-        ephemeral-storage: 256Mi  
-    storage:
-      type: ephemeral
-    replicas: 3
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
