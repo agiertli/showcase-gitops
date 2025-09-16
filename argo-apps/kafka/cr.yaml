@@ -2,7 +2,7 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: my-cluster
+  name: my-cluster-2
   namespace: strimzi
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
