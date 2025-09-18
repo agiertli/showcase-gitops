@@ -1,3 +1,4 @@
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -11,3 +12,18 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   name: amq-streams
+
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: strimzi-console
+  namespace: strimzi
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  name: amq-streams-console
