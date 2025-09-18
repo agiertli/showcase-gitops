@@ -2,6 +2,8 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: dual-role
+  annotations:
+        argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     strimzi.io/cluster: my-cluster
 spec:
@@ -26,6 +28,8 @@ metadata:
   annotations:
     strimzi.io/node-pools: enabled
     strimzi.io/kraft: enabled
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+
 spec:
   kafka:
     listeners:
@@ -46,3 +50,17 @@ spec:
   entityOperator:
     topicOperator: {}
     userOperator: {}
+
+---
+apiVersion: console.streamshub.github.com/v1alpha1
+kind: Console
+metadata:
+  name: my-console
+  annotations: 
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  hostname: my-kafka-console.apps.cluster-6hhl7.6hhl7.sandbox5292.opentlc.com
+  kafkaClusters:
+    - name: my-cluster
+      namespace: strimzi 
+      listener: secure 

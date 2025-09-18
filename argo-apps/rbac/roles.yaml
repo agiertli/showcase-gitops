@@ -5,6 +5,12 @@ metadata:
   name: custom-argocd-role
 rules:
   - apiGroups:
+      - console.streamshub.github.com
+    resources:
+      - console
+    verbs:
+      - "*"
+  - apiGroups:
       - workspace.devfile.io
     resources:
       - DevWorkspaceTemplate
