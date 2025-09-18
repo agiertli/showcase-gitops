@@ -63,4 +63,4 @@ spec:
   kafkaClusters:
     - name: my-cluster
       namespace: strimzi 
-      listener: secure 
+      listener: plain 
