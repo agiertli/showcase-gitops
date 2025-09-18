@@ -33,6 +33,7 @@ rules:
       - kafka.strimzi.io
     resources:
       - kafka
+      - kafkatopic
       - kafkanodepool
       - kafkanodepools
       - kafkas
