@@ -3,7 +3,7 @@ kind: KafkaNodePool
 metadata:
   name: dual-role
   annotations:
-        argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     strimzi.io/cluster: my-cluster
 spec:
@@ -20,7 +20,6 @@ spec:
         deleteClaim: false
         kraftMetadata: shared
 ---
-
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
@@ -56,11 +55,11 @@ apiVersion: console.streamshub.github.com/v1alpha1
 kind: Console
 metadata:
   name: my-console
-  annotations: 
+  annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  hostname: my-kafka-console.apps.cluster-6hhl7.6hhl7.sandbox5292.opentlc.com
+  hostname: my-kafka-console.apps.cluster-4xxm7.4xxm7.sandbox5314.opentlc.com
   kafkaClusters:
     - name: my-cluster
-      namespace: strimzi 
-      listener: plain 
+      namespace: strimzi
+      listener: plain
