@@ -58,4 +58,4 @@ applications:
   - name: amq
     path: amq
     destination: amq
-    enabled: false
+    enabled: true
