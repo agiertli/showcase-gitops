@@ -2,7 +2,7 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true,ServerSideApply=true
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   name: example-clustered-broker
 spec:
   acceptors:
