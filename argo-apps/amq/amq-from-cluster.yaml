@@ -2,22 +2,25 @@ apiVersion: broker.amq.io/v1beta1
 kind: ActiveMQArtemis
 metadata:
   annotations:
-    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true,ServerSideApply=true
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  labels:
+    app.kubernetes.io/instance: amq
   name: example-clustered-broker
+  namespace: amq
 spec:
   acceptors:
-    - name: mqtt-acceptor
+    - expose: true
       exposeMode: route
-      expose: true
+      name: mqtt-acceptor
       port: 5672
       protocols: mqtt
   console:
     expose: true
   deploymentPlan:
-    size: 2
+    clustered: true
     image: placeholder
-    requireLogin: false
-    persistenceEnabled: true
     journalType: nio
     messageMigration: true
-    clustered: true
+    persistenceEnabled: true
+    requireLogin: false
+    size: 2
