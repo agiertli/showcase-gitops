@@ -18,7 +18,7 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - broker.amq.io/v1beta1
+      - broker.amq.io
     resources:
       - "*"
     verbs:
