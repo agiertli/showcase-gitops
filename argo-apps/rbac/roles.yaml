@@ -20,7 +20,7 @@ rules:
   - apiGroups:
       - broker.amq.io/v1beta1
     resources:
-      - activemqartemis
+      - "*"
     verbs:
       - "*"
   - apiGroups:
