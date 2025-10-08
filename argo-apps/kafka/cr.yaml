@@ -58,7 +58,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
-  hostname: my-kafka-console.apps.cluster-4xxm7.4xxm7.sandbox5314.opentlc.com
+  hostname: my-kafka-console.apps.cluster-wr2dn.wr2dn.sandbox1044.opentlc.com
   kafkaClusters:
     - name: my-cluster
       namespace: strimzi
