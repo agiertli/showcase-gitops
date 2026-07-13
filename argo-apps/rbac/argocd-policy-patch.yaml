@@ -56,6 +56,7 @@ spec:
       - activemqartemises
       - InferenceService
       - ServingRuntime
+      - LlamaStackDistribution
       clusters:
       - "*"
   rbac:

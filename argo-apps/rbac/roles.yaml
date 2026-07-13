@@ -95,3 +95,9 @@ rules:
       - servingruntimes
     verbs:
       - "*"
+  - apiGroups:
+      - llamastack.io
+    resources:
+      - llamastackdistributions
+    verbs:
+      - "*"
