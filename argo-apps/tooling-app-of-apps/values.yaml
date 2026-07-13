@@ -59,3 +59,8 @@ applications:
     path: amq
     destination: amq
     enabled: false
+
+  - name: rhoai-playground
+    path: rhoai-playground
+    destination: rhoai-playground
+    enabled: true

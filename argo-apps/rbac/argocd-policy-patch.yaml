@@ -54,6 +54,8 @@ spec:
       - Route
       - ActiveMQArtemis
       - activemqartemises
+      - InferenceService
+      - ServingRuntime
       clusters:
       - "*"
   rbac:

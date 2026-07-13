@@ -88,3 +88,10 @@ rules:
       - devworkspaces
     verbs:
       - "*"
+  - apiGroups:
+      - serving.kserve.io
+    resources:
+      - inferenceservices
+      - servingruntimes
+    verbs:
+      - "*"
