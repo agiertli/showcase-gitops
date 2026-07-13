@@ -14,6 +14,8 @@ metadata:
   namespace: rhoai-playground
 spec:
   predictor:
+    deploymentStrategy:
+      type: Recreate
     maxReplicas: 1
     minReplicas: 1
     model:
