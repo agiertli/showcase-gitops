@@ -5,7 +5,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     openshift.io/display-name: qwen3-8b
-    serving.kserve.io/deploymentMode: RawDeployment
+    serving.kserve.io/deploymentMode: Standard
     security.opendatahub.io/enable-auth: "false"
   labels:
     opendatahub.io/dashboard: "true"
