@@ -57,6 +57,7 @@ spec:
       - InferenceService
       - ServingRuntime
       - LlamaStackDistribution
+      - PersistentVolumeClaim
       clusters:
       - "*"
   rbac:
