@@ -101,3 +101,15 @@ rules:
       - llamastackdistributions
     verbs:
       - "*"
+  - apiGroups:
+      - datasciencecluster.opendatahub.io
+    resources:
+      - datascienceclusters
+    verbs:
+      - "*"
+  - apiGroups:
+      - mlflow.opendatahub.io
+    resources:
+      - mlflows
+    verbs:
+      - "*"

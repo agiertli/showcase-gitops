@@ -58,6 +58,8 @@ spec:
       - ServingRuntime
       - LlamaStackDistribution
       - PersistentVolumeClaim
+      - DataScienceCluster
+      - MLflow
       clusters:
       - "*"
   rbac:
