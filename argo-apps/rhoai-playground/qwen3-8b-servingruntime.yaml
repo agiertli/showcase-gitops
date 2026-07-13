@@ -10,7 +10,7 @@ metadata:
     openshift.io/display-name: vLLM NVIDIA GPU ServingRuntime for KServe
   labels:
     opendatahub.io/dashboard: "true"
-  name: qwen3-5-35b-a3b
+  name: qwen3-8b
   namespace: rhoai-playground
 spec:
   annotations:

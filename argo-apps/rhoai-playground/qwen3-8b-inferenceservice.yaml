@@ -4,12 +4,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
-    openshift.io/display-name: qwen3-5-35b-a3b
+    openshift.io/display-name: qwen3-8b
     serving.kserve.io/deploymentMode: RawDeployment
     security.opendatahub.io/enable-auth: "false"
   labels:
     opendatahub.io/dashboard: "true"
-  name: qwen3-5-35b-a3b
+  name: qwen3-8b
   namespace: rhoai-playground
 spec:
   predictor:
@@ -18,7 +18,7 @@ spec:
     model:
       args:
         - --dtype=float16
-        - --max-model-len=8192
+        - --max-model-len=16384
         - --gpu-memory-utilization=0.95
         - --enable-auto-tool-choice
         - --tool-call-parser=hermes
@@ -26,12 +26,12 @@ spec:
         name: vLLM
       resources:
         limits:
-          cpu: "8"
-          memory: 32Gi
-          nvidia.com/gpu: "1"
-        requests:
-          cpu: "2"
+          cpu: "4"
           memory: 16Gi
           nvidia.com/gpu: "1"
-      runtime: qwen3-5-35b-a3b
-      storageUri: oci://registry.redhat.io/rhai/modelcar-qwen3-5-35b-a3b-fp8-dynamic:3.0
+        requests:
+          cpu: "1"
+          memory: 8Gi
+          nvidia.com/gpu: "1"
+      runtime: qwen3-8b
+      storageUri: oci://registry.redhat.io/rhelai1/modelcar-qwen3-8b-fp8-dynamic:1.5
