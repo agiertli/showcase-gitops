@@ -1,0 +1,53 @@
+# Workaround for maas-api OOM (RHOAI 3.4.2)
+#
+# The maas-controller hardcodes maas-api memory limits at 128Mi
+# (see deployment/base/maas-api/core/deployment.yaml in
+# opendatahub-io/models-as-a-service). No CRD, ConfigMap, or env var
+# allows overriding this.
+#
+# The annotation opendatahub.io/managed=false tells the maas-controller
+# to skip this resource during reconciliation (checked by
+# isLiveResourceUnmanaged in apply.go before SSA+ForceOwnership).
+#
+# RISK: The maas-controller will no longer update this Deployment on
+# RHOAI upgrades (image bumps, env var changes). After upgrading RHOAI,
+# review the operator's desired state and update this manifest or remove
+# the annotation once upstream adds resource override support.
+#
+# Upstream fix: file an RFE at https://github.com/opendatahub-io/models-as-a-service
+# to add resource limit fields to the Tenant CRD or maas-parameters ConfigMap.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-api
+  namespace: redhat-ods-applications
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/component: api
+    app.kubernetes.io/name: maas-api
+    app.kubernetes.io/part-of: models-as-a-service
+    app.opendatahub.io/modelsasservice: "true"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+      app.kubernetes.io/name: maas-api
+      app.kubernetes.io/part-of: models-as-a-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: api
+        app.kubernetes.io/name: maas-api
+        app.kubernetes.io/part-of: models-as-a-service
+    spec:
+      containers:
+        - name: maas-api
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi

@@ -23,6 +23,8 @@ spec:
       managementState: Managed
     mlflowoperator:
       managementState: Managed
+    llamastackoperator:
+      managementState: Managed
     kserve:
       managementState: Managed
       rawDeploymentServiceConfig: Headless
