@@ -67,6 +67,7 @@ spec:
       - MaaSModelRef
       - MaaSSubscription
       - MaaSAuthPolicy
+      - EnvoyFilter
       - OperatorGroup
       clusters:
       - "*"

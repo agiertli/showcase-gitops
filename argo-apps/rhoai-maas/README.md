@@ -46,6 +46,7 @@ Sync waves control deployment order. Lower numbers deploy first.
 
 | File | Wave | What it does |
 |---|---|---|
+| `remove-kuadrant-wasm-from-dsg.yaml` | 1 | EnvoyFilter that removes leaked Kuadrant WASM filters from data-science-gateway (prevents dashboard 401) |
 | `maas-gateway.yaml` | 0, 1 | Headless Service (triggers OpenShift TLS cert generation for `maas-gateway-tls` secret) + Gateway using `data-science-gateway-class` with HTTPS/443 listener |
 | `tls-authorino-service.yaml` | 2 | ServerSideApply patch on `authorino-authorino-authorization` Service to add cert annotation — triggers OpenShift to generate `authorino-server-cert` |
 | `tls-authorino-cr.yaml` | 2 | Authorino CR with TLS enabled, referencing the generated cert secret |
@@ -178,6 +179,14 @@ DataScienceCluster, Authorino Service, and Authorino Deployment are owned by ope
 ### 10. SkipDryRunOnMissingResource for CRDs installed by operators
 
 Resources like Kuadrant, Authorino, MaaSModelRef, MaaSSubscription, Gateway, and LLMInferenceService depend on CRDs installed by operators in earlier sync waves. ArgoCD dry-run fails without `SkipDryRunOnMissingResource=true`.
+
+### 11. Kuadrant WASM filters leak to data-science-gateway (BREAKS DASHBOARD)
+
+Kuadrant creates EnvoyFilters with `targetRefs` pointing to `maas-default-gateway`, but Istio's `targetRefs` on EnvoyFilter doesn't properly scope them. Since all gateways (data-science-gateway, maas-default-gateway, openshift-ai-inference) run as separate pods in `openshift-ingress`, the WASM filters leak to ALL gateway pods.
+
+The WASM filter has a catch-all route (`request.url_path.startsWith('/')`) that sends every request to Authorino for API key validation with `failureMode: deny`. Dashboard requests use OAuth Bearer tokens, not API keys, so Authorino rejects them → 401.
+
+Fix: `remove-kuadrant-wasm-from-dsg.yaml` creates an EnvoyFilter with `workloadSelector` targeting `data-science-gateway` that explicitly REMOVEs the WASM filters. This is safe because the data-science-gateway uses OAuth (ext_authz + kube-auth-proxy), not Kuadrant API key auth.
 
 ## Dependency chain
 
