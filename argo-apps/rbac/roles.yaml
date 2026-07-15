@@ -113,3 +113,35 @@ rules:
       - mlflows
     verbs:
       - "*"
+  - apiGroups:
+      - kuadrant.io
+    resources:
+      - kuadrants
+    verbs:
+      - "*"
+  - apiGroups:
+      - operator.authorino.kuadrant.io
+    resources:
+      - authorinos
+    verbs:
+      - "*"
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - "*"
+  - apiGroups:
+      - models.opendatahub.io
+    resources:
+      - maasmodelrefs
+      - maassubscriptions
+      - maasauthpolicies
+    verbs:
+      - "*"
+  - apiGroups:
+      - operators.coreos.com
+    resources:
+      - operatorgroups
+    verbs:
+      - "*"

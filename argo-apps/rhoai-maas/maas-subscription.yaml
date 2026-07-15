@@ -1,0 +1,24 @@
+apiVersion: models.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  name: demo-subscription
+  namespace: models-as-a-service
+spec:
+  owner:
+    groups:
+      - kind: Group
+        name: argocdadmins
+    users:
+      - admin
+  modelRefs:
+    - name: qwen3-8b
+      namespace: rhoai-playground
+      tokenRateLimits:
+        - limit: 1000000
+          window: "1h"
+        - limit: 5000000
+          window: "24h"
+  priority: 10

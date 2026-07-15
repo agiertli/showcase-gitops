@@ -69,3 +69,8 @@ applications:
     path: rhoai-mlflow
     destination: redhat-ods-applications
     enabled: true
+
+  - name: rhoai-maas
+    path: rhoai-maas
+    destination: redhat-ods-applications
+    enabled: true

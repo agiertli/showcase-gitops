@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  name: maas-db-config
+  namespace: redhat-ods-applications
+type: Opaque
+stringData:
+  DB_CONNECTION_URL: "postgresql://maasadmin:maaspassword@maas-postgresql.redhat-ods-applications.svc:5432/maasdb"

@@ -1,0 +1,17 @@
+apiVersion: models.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  name: demo-auth-policy
+  namespace: models-as-a-service
+spec:
+  subjects:
+    groups:
+      - name: argocdadmins
+    users:
+      - admin
+  modelRefs:
+    - name: qwen3-8b
+      namespace: rhoai-playground

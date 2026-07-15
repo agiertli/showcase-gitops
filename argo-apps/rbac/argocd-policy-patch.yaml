@@ -60,6 +60,13 @@ spec:
       - PersistentVolumeClaim
       - DataScienceCluster
       - MLflow
+      - Kuadrant
+      - Authorino
+      - Gateway
+      - MaaSModelRef
+      - MaaSSubscription
+      - MaaSAuthPolicy
+      - OperatorGroup
       clusters:
       - "*"
   rbac:
