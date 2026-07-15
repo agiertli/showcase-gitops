@@ -9,6 +9,18 @@ spec:
   components:
     dashboard:
       managementState: Managed
+    workbenches:
+      managementState: Managed
+    aipipelines:
+      managementState: Managed
+    ray:
+      managementState: Managed
+    trustyai:
+      managementState: Managed
+    modelregistry:
+      managementState: Managed
+    trainingoperator:
+      managementState: Managed
     mlflowoperator:
       managementState: Managed
     kserve:

@@ -36,3 +36,22 @@ spec:
         mode: Terminate
         certificateRefs:
           - name: maas-gateway-tls
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: maas-default-gateway
+  namespace: openshift-ingress
+spec:
+  host: maas.apps.ocp.4t49q.sandbox1217.opentlc.com
+  port:
+    targetPort: https
+  tls:
+    insecureEdgeTerminationPolicy: Redirect
+    termination: passthrough
+  to:
+    kind: Service
+    name: maas-default-gateway-data-science-gateway-class
+    weight: 100
