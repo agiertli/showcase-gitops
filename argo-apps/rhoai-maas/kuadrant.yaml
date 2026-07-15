@@ -6,4 +6,6 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   name: kuadrant
   namespace: kuadrant-system
-spec: {}
+spec:
+  observability:
+    enable: true
