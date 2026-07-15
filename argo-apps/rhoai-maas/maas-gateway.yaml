@@ -19,5 +19,3 @@ spec:
           from: All
       tls:
         mode: Terminate
-        certificateRefs:
-          - name: maas-gateway-tls
