@@ -30,7 +30,7 @@ data:
         provider_type: remote::vllm
         config:
           api_token: ${env.VLLM_API_TOKEN_1:=fake}
-          base_url: http://qwen3-8b-predictor.rhoai-playground.svc.cluster.local:8080/v1
+          base_url: http://qwen3-8b-kserve-workload-svc.rhoai-playground.svc.cluster.local:8000/v1
           max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
           tls_verify: ${env.VLLM_TLS_VERIFY:=true}
       vector_io:
