@@ -221,10 +221,152 @@ oc get maassubscription -n models-as-a-service -o jsonpath='{.items[0].status.ph
 oc get maasauthpolicy -n models-as-a-service
 oc get httproute -n rhoai-playground
 
-# Test API access (create an API key via dashboard first: Gen AI studio > API keys)
-export MAAS_URL="https://$(oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{.status.addresses[0].value}')"
-curl -X POST "${MAAS_URL}/llm/qwen3-8b/v1/chat/completions" \
+# Test API access via the passthrough Route (preferred — stable DNS)
+curl -sk -X POST "https://maas.apps.<cluster_domain>/rhoai-playground/qwen3-8b/v1/chat/completions" \
   -H "Authorization: Bearer sk-oai-<your-key>" \
   -H "Content-Type: application/json" \
-  -d '{"model": "qwen3-8b", "messages": [{"role": "user", "content": "Hello"}], "max_tokens": 50}'
+  -d '{"model": "qwen3-8b", "messages": [{"role": "user", "content": "Hello"}], "max_tokens": 50, "chat_template_kwargs": {"enable_thinking": false}}'
 ```
+
+## Operations
+
+### Adding a new model
+
+1. Create an `LLMInferenceService` in the target namespace with these required fields:
+
+```yaml
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
+metadata:
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"     # makes it visible in AI asset endpoints + Playground
+  name: <model-name>
+  namespace: <namespace>
+spec:
+  model:
+    uri: oci://registry.redhat.io/...      # modelcar OCI URI
+  replicas: 1
+  router:
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+    route: {}                              # empty = auto-generated path prefix routing
+  template:
+    containers:
+      - name: main
+        args: [--dtype=float16, --max-model-len=16384, --gpu-memory-utilization=0.95]
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+```
+
+2. Create a `MaaSModelRef` in the model's namespace:
+
+```yaml
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  name: <model-name>
+  namespace: <namespace>
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: <model-name>
+```
+
+3. Add the model to an existing MaaSSubscription's `modelRefs[]` or create a new subscription.
+
+4. If using LlamaStack/Playground, update the LlamaStack `config.yaml` ConfigMap to add the new model as a provider. Use `https://` for the vLLM endpoint (vLLM serves TLS).
+
+### Adding a new subscription
+
+Create a `MaaSSubscription` in the `models-as-a-service` namespace:
+
+```yaml
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSSubscription
+metadata:
+  name: <subscription-name>
+  namespace: models-as-a-service
+spec:
+  owner:
+    groups:
+      - name: <group-name>       # OpenShift group (NOT kind: Group)
+    users:
+      - <username>
+  modelRefs:
+    - name: <model-name>
+      namespace: <model-namespace>
+      tokenRateLimits:
+        - limit: 1000000         # tokens
+          window: "1h"
+        - limit: 5000000
+          window: "24h"
+  priority: 10                   # higher = higher priority
+```
+
+You also need a matching `MaaSAuthPolicy`:
+
+```yaml
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSAuthPolicy
+metadata:
+  name: <policy-name>
+  namespace: models-as-a-service
+spec:
+  groups:
+    - name: <group-name>
+  users:
+    - <username>
+```
+
+Without the auth policy, requests get 403 even with a valid API key.
+
+Alternatively, use the dashboard: **Settings > Subscriptions > Create subscription**. Token limits appear per-model after clicking "Add models". Check "Create a matching authorization policy" to auto-create the auth policy.
+
+### Adding users to an existing subscription
+
+1. **Via GitOps**: Add the username to `spec.owner.users[]` in the MaaSSubscription and to `spec.users[]` in the matching MaaSAuthPolicy.
+2. **Via UI**: Edit the subscription in **Settings > Subscriptions**, update the groups or users.
+3. **Via groups**: Add the user to an OpenShift group that's already in the subscription's `owner.groups[]`. No subscription change needed.
+
+Users create their own API keys via **Gen AI studio > API keys**.
+
+### Monitoring token consumption
+
+Observability is enabled via:
+- `spec.observability.enable: true` on the Kuadrant CR (gitopsified in `kuadrant.yaml`)
+- `spec.telemetry.enabled: true` on the Tenant CR (applied via `oc patch` — Tenant is excluded from ArgoCD)
+
+To re-apply telemetry if the Tenant gets recreated:
+```bash
+oc patch tenants.maas.opendatahub.io default-tenant -n models-as-a-service \
+  --type merge \
+  -p '{"spec":{"telemetry":{"enabled":true,"metrics":{"captureOrganization":true,"captureUser":true,"captureGroup":false,"captureModelUsage":true}}}}'
+```
+
+Query consumption via Prometheus (OpenShift Console > Observe > Metrics):
+```promql
+# Total tokens consumed per model
+authorized_hits
+
+# Total API calls
+authorized_calls
+
+# Rate-limited requests (HTTP 429)
+limited_calls
+```
+
+### ArgoCD-excluded resources
+
+ArgoCD settings exclude certain resource types. These must be managed directly via `oc`:
+- `Tenant` — telemetry config (see above)
+- `batch/Job` — avoid using Jobs for workarounds
+
+### Known UI quirks
+
+- **"Models as a Service could not be loaded"** banner on AI asset endpoints: the gen-ai-ui can't autodiscover the MaaS API URL. Models still appear via the `genai-asset` label. This is cosmetic.
+- **External API endpoint shows AWS NLB URL**: the LLMInferenceService controller reads the Gateway's `.status.addresses[0].value` which is the NLB hostname on AWS. The `maas.apps.<cluster_domain>` Route is a passthrough proxy to the same backend — both URLs work.
+- **Qwen3 shows `<think>` tags in Playground**: Qwen3 models have a thinking mode. To suppress it in API calls, add `"chat_template_kwargs": {"enable_thinking": false}` to the request body.
