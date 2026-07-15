@@ -7,6 +7,8 @@ metadata:
   name: default-dsc
 spec:
   components:
+    mlflowoperator:
+      managementState: Managed
     kserve:
       modelsAsService:
         managementState: Managed
