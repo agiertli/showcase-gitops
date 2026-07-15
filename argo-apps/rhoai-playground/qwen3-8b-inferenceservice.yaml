@@ -6,6 +6,7 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
   name: qwen3-8b
   namespace: rhoai-playground
 spec:
@@ -17,10 +18,7 @@ spec:
       refs:
         - name: maas-default-gateway
           namespace: openshift-ingress
-    route:
-      http:
-        spec:
-          useDefaultGateways: "All"
+    route: {}
   template:
     containers:
       - name: main
