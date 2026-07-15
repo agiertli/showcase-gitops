@@ -9,8 +9,7 @@ metadata:
 spec:
   owner:
     groups:
-      - kind: Group
-        name: argocdadmins
+      - name: argocdadmins
     users:
       - admin
   modelRefs:
