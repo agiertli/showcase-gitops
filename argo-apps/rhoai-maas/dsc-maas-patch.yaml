@@ -7,6 +7,8 @@ metadata:
   name: default-dsc
 spec:
   components:
+    dashboard:
+      managementState: Managed
     mlflowoperator:
       managementState: Managed
     kserve:
