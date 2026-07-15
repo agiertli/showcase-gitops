@@ -138,6 +138,7 @@ rules:
       - maasmodelrefs
       - maassubscriptions
       - maasauthpolicies
+      - tenants
     verbs:
       - "*"
   - apiGroups:
