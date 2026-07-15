@@ -132,7 +132,7 @@ rules:
     verbs:
       - "*"
   - apiGroups:
-      - models.opendatahub.io
+      - maas.opendatahub.io
     resources:
       - maasmodelrefs
       - maassubscriptions
