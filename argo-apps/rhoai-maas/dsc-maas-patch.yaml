@@ -10,5 +10,7 @@ spec:
     mlflowoperator:
       managementState: Managed
     kserve:
+      managementState: Managed
+      rawDeploymentServiceConfig: Headless
       modelsAsService:
         managementState: Managed
