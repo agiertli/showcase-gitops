@@ -55,6 +55,7 @@ spec:
       - ActiveMQArtemis
       - activemqartemises
       - InferenceService
+      - LLMInferenceService
       - ServingRuntime
       - LlamaStackDistribution
       - PersistentVolumeClaim

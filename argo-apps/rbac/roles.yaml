@@ -92,6 +92,7 @@ rules:
       - serving.kserve.io
     resources:
       - inferenceservices
+      - llminferenceservices
       - servingruntimes
     verbs:
       - "*"
