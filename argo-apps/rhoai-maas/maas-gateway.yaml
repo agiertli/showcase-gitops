@@ -3,8 +3,8 @@ kind: Service
 metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "0"
-    service.beta.openshift.io/serving-cert-secret-name: maas-default-gateway-service-tls
-  name: maas-default-gateway-data-science-gateway-class
+    service.beta.openshift.io/serving-cert-secret-name: maas-gateway-tls
+  name: maas-gateway-cert-generator
   namespace: openshift-ingress
 spec:
   clusterIP: None
@@ -35,4 +35,4 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - name: maas-default-gateway-service-tls
+          - name: maas-gateway-tls
