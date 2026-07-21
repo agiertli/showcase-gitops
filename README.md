@@ -4,7 +4,7 @@ This repository helps to get quickly up and running with selected Red Hat produc
 
 Here is a list of currently supported ArgoCD Application and the respective Red Hat products which they install:
 
-//test
+//test 21.7. 17:50
 
  - Red Hat OpenShift Pipelines 
  - Red Hat OpenShift Dev Spaces
