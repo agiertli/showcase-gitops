@@ -15,3 +15,7 @@ spec:
   modelRefs:
     - name: qwen3-8b
       namespace: rhoai-playground
+    - name: qwen3-27b
+      namespace: rhoai-playground
+    - name: thinkingcap-27b
+      namespace: rhoai-playground

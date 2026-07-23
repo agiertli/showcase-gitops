@@ -30,7 +30,7 @@ spec:
         - name: FMS_ORCHESTRATOR_URL
           value: http://localhost
         - name: VLLM_MAX_TOKENS
-          value: "4096"
+          value: "2048"
         - name: VLLM_API_TOKEN_1
           value: fake
         - name: VLLM_API_TOKEN_2

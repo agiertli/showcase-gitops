@@ -1,0 +1,12 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  name: thinkingcap-27b
+  namespace: rhoai-playground
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: thinkingcap-27b
