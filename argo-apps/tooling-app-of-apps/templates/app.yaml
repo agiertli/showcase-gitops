@@ -6,10 +6,6 @@ kind: Application
 metadata:
   name: {{ .name }}
   namespace: {{ $.Values.argo.namespace }}
-  {{- if .syncWave }}
-  annotations:
-    argocd.argoproj.io/sync-wave: "{{ .syncWave }}"
-  {{- end }}
   finalizers:
   - resources-finalizer.argocd.argoproj.io
 spec:
