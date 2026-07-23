@@ -11,7 +11,7 @@ metadata:
   namespace: rhoai-playground
 spec:
   model:
-    uri: oci://registry.redhat.io/rhelai1/modelcar-thinkingcap-27b-fp8-dynamic:1.5
+    uri: hf://bottlecapai/ThinkingCap-Qwen3.6-27B-FP8
   replicas: 1
   router:
     gateway:
@@ -23,17 +23,18 @@ spec:
     containers:
       - name: main
         args:
-          - --dtype=float16
-          - --max-model-len=16384
-          - --gpu-memory-utilization=0.95
+          - --dtype=auto
+          - --max-model-len=4096
+          - --gpu-memory-utilization=0.90
           - --enable-auto-tool-choice
           - --tool-call-parser=hermes
+          - --enforce-eager
         resources:
           limits:
             cpu: "4"
-            memory: 32Gi
+            memory: 48Gi
             nvidia.com/gpu: "1"
           requests:
             cpu: "1"
-            memory: 16Gi
+            memory: 8Gi
             nvidia.com/gpu: "1"
