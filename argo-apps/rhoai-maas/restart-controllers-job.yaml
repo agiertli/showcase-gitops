@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+  name: controller-restart-sa
+  namespace: redhat-ods-applications
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+  name: controller-restart-role
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "15"
+  name: controller-restart-binding
+subjects:
+  - kind: ServiceAccount
+    name: controller-restart-sa
+    namespace: redhat-ods-applications
+roleRef:
+  kind: ClusterRole
+  name: controller-restart-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+  name: restart-controllers-after-rhcl
+  namespace: redhat-ods-applications
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      serviceAccountName: controller-restart-sa
+      restartPolicy: OnFailure
+      containers:
+        - name: restart
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for AuthPolicy CRD..."
+              for i in $(seq 1 60); do
+                if oc get crd authpolicies.kuadrant.io &>/dev/null; then
+                  echo "AuthPolicy CRD found"
+                  break
+                fi
+                echo "Attempt $i/60 - waiting..."
+                sleep 10
+              done
+
+              if ! oc get crd authpolicies.kuadrant.io &>/dev/null; then
+                echo "AuthPolicy CRD not available after 10 minutes, exiting"
+                exit 1
+              fi
+
+              echo "Rolling restart llmisvc-controller-manager..."
+              oc rollout restart deployment/llmisvc-controller-manager -n redhat-ods-applications || true
+
+              echo "Rolling restart kuadrant-operator..."
+              oc rollout restart deployment/kuadrant-operator-controller-manager -n rhcl-operator || true
+
+              echo "Done"
