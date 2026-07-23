@@ -33,6 +33,10 @@ spec:
           value: "4096"
         - name: VLLM_API_TOKEN_1
           value: fake
+        - name: VLLM_API_TOKEN_2
+          value: fake
+        - name: VLLM_API_TOKEN_3
+          value: fake
         - name: LLAMA_STACK_CONFIG_DIR
           value: /opt/app-root/src/.llama/distributions/rh/
       name: llama-stack
