@@ -64,11 +64,13 @@ applications:
     path: rhoai-playground
     destination: rhoai-playground
     enabled: true
+    syncWave: 5
 
   - name: rhoai-mlflow
     path: rhoai-mlflow
     destination: redhat-ods-applications
     enabled: true
+    syncWave: 5
 
   - name: rhoai-maas
     path: rhoai-maas
