@@ -21,3 +21,9 @@ spec:
         - limit: 5000000
           window: "24h"
   priority: 10
+  tokenMetadata:
+    organizationId: ministry-of-defence
+    costCenter: ai-innovation-centre
+    labels:
+      department: cyber-operations
+      environment: production
