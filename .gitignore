@@ -1,4 +1,5 @@
 docs/
 test-maas.sh
 test-mlflow-tracing-*.py
+test-muse-glimmer-vision.py
 .maas-api-key
