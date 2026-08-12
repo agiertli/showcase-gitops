@@ -13,22 +13,8 @@ spec:
     users:
       - admin
   modelRefs:
-    - name: qwen3-8b
-      namespace: rhoai-playground
-      tokenRateLimits:
-        - limit: 1000000
-          window: "1h"
-        - limit: 5000000
-          window: "24h"
-    - name: qwen3-27b
-      namespace: rhoai-playground
-      tokenRateLimits:
-        - limit: 1000000
-          window: "1h"
-        - limit: 5000000
-          window: "24h"
-    - name: thinkingcap-27b
-      namespace: rhoai-playground
+    - name: muse-glimmer
+      namespace: muse-glimmer
       tokenRateLimits:
         - limit: 1000000
           window: "1h"

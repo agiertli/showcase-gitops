@@ -1,0 +1,12 @@
+apiVersion: maas.opendatahub.io/v1alpha1
+kind: MaaSModelRef
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  name: muse-glimmer
+  namespace: muse-glimmer
+spec:
+  modelRef:
+    kind: LLMInferenceService
+    name: muse-glimmer

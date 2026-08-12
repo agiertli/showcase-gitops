@@ -26,25 +26,11 @@ data:
       - provider_id: sentence-transformers
         provider_type: inline::sentence-transformers
         config: {}
-      - provider_id: vllm-inference-1
+      - provider_id: vllm-muse-glimmer
         provider_type: remote::vllm
         config:
           api_token: ${env.VLLM_API_TOKEN_1:=fake}
-          base_url: https://qwen3-8b-kserve-workload-svc.rhoai-playground.svc.cluster.local:8000/v1
-          max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-          tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-      - provider_id: vllm-inference-2
-        provider_type: remote::vllm
-        config:
-          api_token: ${env.VLLM_API_TOKEN_2:=fake}
-          base_url: https://qwen3-27b-kserve-workload-svc.rhoai-playground.svc.cluster.local:8000/v1
-          max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
-          tls_verify: ${env.VLLM_TLS_VERIFY:=true}
-      - provider_id: vllm-inference-3
-        provider_type: remote::vllm
-        config:
-          api_token: ${env.VLLM_API_TOKEN_3:=fake}
-          base_url: https://thinkingcap-27b-kserve-workload-svc.rhoai-playground.svc.cluster.local:8000/v1
+          base_url: https://muse-glimmer-kserve-workload-svc.muse-glimmer.svc.cluster.local:8000/v1
           max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
           tls_verify: ${env.VLLM_TLS_VERIFY:=true}
       vector_io:
@@ -133,21 +119,11 @@ data:
         model_type: embedding
         metadata:
           embedding_dimension: 768
-      - provider_id: vllm-inference-1
-        model_id: qwen3-8b
+      - provider_id: vllm-muse-glimmer
+        model_id: muse-glimmer
         model_type: llm
         metadata:
-          display_name: qwen3-8b
-      - provider_id: vllm-inference-2
-        model_id: qwen3-27b
-        model_type: llm
-        metadata:
-          display_name: qwen3-27b
-      - provider_id: vllm-inference-3
-        model_id: thinkingcap-27b
-        model_type: llm
-        metadata:
-          display_name: thinkingcap-27b
+          display_name: muse-glimmer
       shields: []
       vector_stores: []
       datasets: []

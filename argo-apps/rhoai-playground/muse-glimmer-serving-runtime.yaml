@@ -1,0 +1,48 @@
+apiVersion: serving.kserve.io/v1alpha1
+kind: ServingRuntime
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    opendatahub.io/recommended-accelerators: '["nvidia.com/gpu"]'
+    openshift.io/display-name: vLLM Muse-Glimmer ServingRuntime for KServe
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: vllm-muse-glimmer-runtime
+  namespace: muse-glimmer
+spec:
+  annotations:
+    opendatahub.io/kserve-runtime: vllm
+    prometheus.io/path: /metrics
+    prometheus.io/port: "8080"
+  containers:
+    - args:
+        - --port=8080
+        - --model=/mnt/models
+        - --served-model-name={{.Name}}
+        - --generation-config=auto
+        - --tensor-parallel-size=1
+        - --enable-auto-tool-choice
+        - --tool-call-parser=muse_glimmer
+        - --reasoning-parser=muse_glimmer
+        - --max-model-len=auto
+        - --kv-cache-dtype=fp8
+      env:
+        - name: HF_HOME
+          value: /tmp/hf_home
+        - name: HOME
+          value: /tmp
+        - name: VLLM_CACHE_DIR
+          value: /tmp/vllm_cache
+        - name: XDG_CACHE_HOME
+          value: /tmp/.cache
+        - name: FLASHINFER_WORKSPACE_DIR
+          value: /tmp/flashinfer
+      image: vllm/vllm-openai:muse-glimmer
+      name: kserve-container
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+  multiModel: false
+  supportedModelFormats:
+    - autoSelect: true
+      name: vLLM

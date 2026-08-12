@@ -1,0 +1,56 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  labels:
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
+  name: muse-glimmer
+  namespace: muse-glimmer
+spec:
+  model:
+    uri: s3://models/RedHatAI/Muse-Glimmer-30B-FP8-block
+  replicas: 1
+  router:
+    gateway:
+      refs:
+        - name: maas-default-gateway
+          namespace: openshift-ingress
+    route: {}
+  template:
+    serviceAccountName: muse-glimmer-sa
+    containers:
+      - name: main
+        image: vllm/vllm-openai:muse-glimmer
+        args:
+          - --generation-config=auto
+          - --tensor-parallel-size=1
+          - --enable-auto-tool-choice
+          - --tool-call-parser=muse_glimmer
+          - --reasoning-parser=muse_glimmer
+          - --max-model-len=auto
+          - --kv-cache-dtype=fp8
+        env:
+          - name: HF_HOME
+            value: /tmp/hf_home
+          - name: HOME
+            value: /tmp
+          - name: VLLM_CACHE_DIR
+            value: /tmp/vllm_cache
+          - name: XDG_CACHE_HOME
+            value: /tmp/.cache
+          - name: FLASHINFER_WORKSPACE_DIR
+            value: /tmp/flashinfer
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "1"
+            memory: 16Gi
+            nvidia.com/gpu: "1"
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists
