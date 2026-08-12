@@ -1,0 +1,63 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- cluster-config.yaml
+- coo-namespace.yaml
+- coo-operatorgroup.yaml
+- coo-subscription.yaml
+- dashboard-config-patch.yaml
+- dashboard-llmis-rbac.yaml
+- dsc-maas-patch.yaml
+- dsci-monitoring-patch.yaml
+- kuadrant-namespace.yaml
+- kuadrant.yaml
+- maas-api-resource-override.yaml
+- maas-auth-policy.yaml
+- maas-db-config.yaml
+- maas-gateway.yaml
+- maas-model-ref-muse-glimmer.yaml
+- maas-model-ref-qwen3-27b.yaml
+- maas-model-ref-thinkingcap-27b.yaml
+- maas-model-ref.yaml
+- maas-subscription.yaml
+- otel-namespace.yaml
+- otel-operatorgroup.yaml
+- otel-subscription.yaml
+- perses-coo-networkpolicy.yaml
+- postgresql.yaml
+- remove-kuadrant-wasm-from-dsg.yaml
+- restart-controllers-job.yaml
+- rhcl-namespace.yaml
+- rhcl-operatorgroup.yaml
+- rhcl-subscription.yaml
+- tempo-namespace.yaml
+- tempo-operatorgroup.yaml
+- tempo-subscription.yaml
+- tenant-telemetry.yaml
+- tls-authorino-cr.yaml
+- tls-authorino-deployment.yaml
+- tls-authorino-service.yaml
+- user-workload-monitoring.yaml
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: cluster-config
+    fieldPath: data.MAAS_HOST
+  targets:
+  - select:
+      kind: Route
+      name: maas-default-gateway
+    fieldPaths:
+    - spec.host
+- source:
+    kind: ConfigMap
+    name: cluster-config
+    fieldPath: data.MAAS_ENDPOINT_OVERRIDE
+  targets:
+  - select:
+      kind: MaaSModelRef
+      name: muse-glimmer
+    fieldPaths:
+    - spec.endpointOverride

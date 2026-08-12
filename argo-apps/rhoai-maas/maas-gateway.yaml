@@ -45,7 +45,7 @@ metadata:
   name: maas-default-gateway
   namespace: openshift-ingress
 spec:
-  host: maas.apps.ocp.b6ngg.sandbox1066.opentlc.com
+  host: MAAS_HOST
   port:
     targetPort: https
   tls:

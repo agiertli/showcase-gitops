@@ -7,7 +7,7 @@ metadata:
   name: muse-glimmer
   namespace: muse-glimmer
 spec:
-  endpointOverride: https://maas.apps.ocp.b6ngg.sandbox1066.opentlc.com/muse-glimmer/muse-glimmer
+  endpointOverride: MAAS_ENDPOINT_OVERRIDE
   modelRef:
     kind: LLMInferenceService
     name: muse-glimmer

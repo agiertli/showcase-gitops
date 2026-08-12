@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-config
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  MAAS_HOST: maas.apps.ocp.b6ngg.sandbox1066.opentlc.com
+  MAAS_ENDPOINT_OVERRIDE: https://maas.apps.ocp.b6ngg.sandbox1066.opentlc.com/muse-glimmer/muse-glimmer
