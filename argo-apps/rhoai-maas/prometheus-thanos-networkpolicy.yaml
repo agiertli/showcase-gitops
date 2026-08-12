@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: prometheus-thanos-querier-access
+  namespace: redhat-ods-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/instance: data-science-monitoringstack
+      app.kubernetes.io/name: prometheus
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: ThanosQuerier
+    ports:
+    - port: 10901
+      protocol: TCP
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: opentelemetry-collector
+    ports:
+    - port: 9090
+      protocol: TCP
+  policyTypes:
+  - Ingress

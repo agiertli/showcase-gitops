@@ -1,0 +1,20 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  labels:
+    app.kubernetes.io/component: llminferenceservice-workload
+    app.kubernetes.io/name: muse-glimmer
+    app.kubernetes.io/part-of: llminferenceservice
+  name: muse-glimmer-direct
+  namespace: muse-glimmer
+spec:
+  port:
+    targetPort: 8000
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: muse-glimmer-kserve-workload-svc
+    weight: 100
