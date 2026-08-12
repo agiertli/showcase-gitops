@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: perses-coo-access
+  namespace: redhat-ods-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: perses-operator
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: cluster-observability-operator
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: perses-operator
+    ports:
+    - port: 8080
+      protocol: TCP
+  policyTypes:
+  - Ingress
