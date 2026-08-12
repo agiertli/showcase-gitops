@@ -35,7 +35,7 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - name: maas-gateway-tls
+          - name: cert-manager-ingress-cert
 ---
 apiVersion: route.openshift.io/v1
 kind: Route
