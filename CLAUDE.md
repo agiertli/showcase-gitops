@@ -28,7 +28,7 @@
 - **Platform metrics**: MonitoringStack Prometheus has no kube/node metrics by default. Fix: create a ServiceMonitor with `/federate` path targeting `openshift-monitoring` Prometheus (needs `cluster-monitoring-view` ClusterRoleBinding)
 - **MonitoringStack API group**: MonitoringStack uses `monitoring.rhobs/v1` for its ServiceMonitors/PodMonitors. KServe-created monitors use `monitoring.coreos.com/v1` (platform Prometheus only). Don't confuse them
 - **Recording rules on counters**: Never use `label_replace` with the same metric name on counters — it creates new series with no history, zeroing `increase()` calculations. This is unfixable
-- **Usage tab**: Not functional — Limitador only emits `limitador_up` and `datastore_partitioned`, no per-user/subscription metrics
+- **MaaS Usage/Observability tab (Tech Preview)**: Works when both Kuadrant (`spec.observability.enable: true`) and Tenant (`spec.telemetry.enabled: true`) are configured. Limitador emits `authorized_hits`, `authorized_calls`, `limited_calls` with subscription/model labels. Metrics only appear after MaaS traffic is generated — empty before first request is normal. Dashboard uses Perses + Thanos Querier. See doc section 1.14
 
 ## MLflow Tracing
 - **Application-side only**: MLflow tracing requires client-side instrumentation (`mlflow.openai.autolog()` or `mlflow.langchain.autolog()`). No server-side config needed — MLflow server 3.10+ supports tracing OOTB
