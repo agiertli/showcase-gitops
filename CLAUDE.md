@@ -40,4 +40,4 @@
 - `test-maas.sh` — contains API key
 - `test-mlflow-tracing-*.py` — may contain endpoints
 - `test-muse-glimmer-vision.py` — contains API key
-- `docs/` — large PDFs
+- `docs/` — RHOAI product documentation PDFs (committed to git for agentic coding reference)
