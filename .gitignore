@@ -1,3 +1,4 @@
 docs/
 test-maas.sh
+test-mlflow-tracing-*.py
 .maas-api-key

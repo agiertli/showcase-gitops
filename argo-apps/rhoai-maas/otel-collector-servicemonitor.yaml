@@ -1,0 +1,21 @@
+apiVersion: monitoring.rhobs/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: otel-collector-prometheus-exporter
+  namespace: redhat-ods-monitoring
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: 30s
+    port: prometheus
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+    - redhat-ods-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: data-science-collector-prometheus

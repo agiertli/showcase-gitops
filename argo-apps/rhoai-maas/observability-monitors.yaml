@@ -1,0 +1,80 @@
+apiVersion: monitoring.rhobs/v1
+kind: PodMonitor
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: dcgm-exporter
+  namespace: redhat-ods-monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+    - nvidia-gpu-operator
+  podMetricsEndpoints:
+  - interval: 30s
+    path: /metrics
+    port: metrics
+    scheme: http
+  selector:
+    matchLabels:
+      app: nvidia-dcgm-exporter
+---
+apiVersion: monitoring.rhobs/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: platform-federation
+  namespace: redhat-ods-monitoring
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    honorLabels: true
+    interval: 30s
+    params:
+      match[]:
+      - '{__name__=~"kube_node_status_allocatable|kube_node_status_condition|node_memory_MemTotal_bytes"}'
+      - '{__name__=~"container_memory_working_set_bytes",container!="",image!=""}'
+      - '{__name__="node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate"}'
+      - '{__name__="container_network_receive_bytes_total"}'
+    path: /federate
+    port: web
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+    - openshift-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: prometheus
+      app.kubernetes.io/name: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: data-science-monitoringstack-prometheus-cluster
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: data-science-monitoringstack-prometheus
+subjects:
+- kind: ServiceAccount
+  name: data-science-monitoringstack-prometheus
+  namespace: redhat-ods-monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+  name: data-science-prometheus-monitoring-view
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+- kind: ServiceAccount
+  name: data-science-monitoringstack-prometheus
+  namespace: redhat-ods-monitoring
