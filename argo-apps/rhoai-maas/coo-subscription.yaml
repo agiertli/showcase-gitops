@@ -7,7 +7,7 @@ metadata:
   namespace: cluster-observability-operator
 spec:
   channel: stable
-  installPlanApproval: Automatic
+  installPlanApproval: Manual
   name: cluster-observability-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace

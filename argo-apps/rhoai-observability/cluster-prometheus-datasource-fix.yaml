@@ -1,0 +1,46 @@
+# Workaround for RHOAI 3.4.3 + COO 1.5.1 bug:
+# The RHOAI monitoring controller generates a PersesDatasource for the cluster
+# Prometheus but omits spec.client.tls.caCert.namespace, which COO 1.5.1
+# requires. Pre-creating this resource with the namespace field set unblocks
+# the operator's SSA reconciliation — the operator fills in the remaining
+# fields (URL, secret, display) on its first successful pass.
+#
+# Without this, the Monitoring CR stays in Error state and the observability
+# dashboard shows "No datasource found for kind 'PrometheusDatasource' and
+# name 'undefined'" on every panel.
+#
+# Remove this file once RHOAI ships the fix (check Monitoring CR status after
+# removing — if it stays Ready, the operator no longer needs the bootstrap).
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+  name: cluster-prometheus-datasource
+  namespace: redhat-ods-monitoring
+  labels:
+    platform.opendatahub.io/part-of: monitoring
+spec:
+  client:
+    tls:
+      caCert:
+        certPath: service-ca.crt
+        name: prometheus-web-tls-ca
+        namespace: redhat-ods-monitoring
+        type: configmap
+      enable: true
+    kubernetesAuth:
+      enable: true
+  config:
+    default: true
+    display:
+      name: Cluster Prometheus
+      description: Bootstrap for RHOAI operator — fields are overwritten by the controller
+    plugin:
+      kind: PrometheusDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            url: https://data-science-prometheus-namespace-proxy.redhat-ods-monitoring.svc:8443

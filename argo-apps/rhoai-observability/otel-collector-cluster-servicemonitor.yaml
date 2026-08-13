@@ -1,0 +1,25 @@
+# Mirrors otel-collector-servicemonitor.yaml (monitoring.rhobs/v1) but for
+# monitoring.coreos.com/v1, so the OTel collector's processed metrics
+# (accelerator_gpu_utilization, etc.) also appear in the cluster-wide
+# openshift-monitoring Thanos Querier used by the default Perses datasource.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: otel-collector-cluster-prometheus
+  namespace: redhat-ods-monitoring
+spec:
+  endpoints:
+  - honorLabels: true
+    interval: 30s
+    port: prometheus
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+    - redhat-ods-monitoring
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: data-science-collector-prometheus

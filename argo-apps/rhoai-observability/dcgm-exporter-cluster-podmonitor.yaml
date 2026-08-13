@@ -1,0 +1,28 @@
+# Scrapes DCGM exporter directly into the platform Prometheus
+# (monitoring.coreos.com/v1) so DCGM_FI_DEV_GPU_UTIL is available
+# for the nvidia-dcgm-exporter PrometheusRule's recording rules
+# (accelerator_gpu_utilization = DCGM_FI_DEV_GPU_UTIL / 100).
+#
+# The OTel collector drops DCGM_FI_DEV_GPU_UTIL, so the DS
+# MonitoringStack's monitoring.rhobs/v1 PodMonitor handles that
+# path separately. This PodMonitor feeds the cluster Thanos Querier
+# used by the default Perses PrometheusDatasource.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+  name: dcgm-exporter-cluster
+  namespace: nvidia-gpu-operator
+spec:
+  namespaceSelector:
+    matchNames:
+    - nvidia-gpu-operator
+  podMetricsEndpoints:
+  - interval: 30s
+    path: /metrics
+    port: metrics
+    scheme: http
+  selector:
+    matchLabels:
+      app: nvidia-dcgm-exporter
