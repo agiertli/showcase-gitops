@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Usage:
+#   export MAAS_URL="https://maas.apps.ocp.example.com"
+#   export API_KEY="sk-..."
+#   ./stress-test.sh [waves] [concurrent]   # defaults: 10 waves, 100 concurrent
 set -euo pipefail
 
 MAAS_URL="${MAAS_URL:?Set MAAS_URL (e.g. https://maas.apps.ocp.example.com)}"
