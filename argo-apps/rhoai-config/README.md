@@ -6,6 +6,8 @@ Patches an existing RHOAI installation with sensible defaults:
 - **KServe**: Managed (single-model serving with raw deployment)
 - **Model Registry**: Managed (namespace: `rhoai-model-registries`)
 - **Model Catalog**: Enabled in the dashboard
+- **GenAI Playground**: Enabled in the dashboard
+- **MinIO**: S3-compatible model storage in the `minio` namespace
 
 ## Prerequisites
 

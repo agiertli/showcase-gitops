@@ -1,5 +1,55 @@
 # Project Rules
 
+## Repository Purpose
+
+This repo provides composable, feature-by-feature GitOps manifests for layering RHOAI capabilities onto an **existing** RHOAI installation. It does NOT install the RHOAI operator itself. Solution architects pick the layers they need and apply them — via ArgoCD or manually with `oc apply`.
+
+## Agent Deployment Guide
+
+This repo assumes RHOAI is already installed on the cluster. When a user opens a conversation in this directory asking to deploy or configure RHOAI features, **start by presenting the feature menu below and ask which features to enable**. Do not assume — let the user pick.
+
+### Feature Menu (present this to the user)
+Ask the user which features they want enabled:
+
+1. **Base Config** (recommended — always) — Model Registry, Model Catalog, GenAI Playground, KServe, MinIO model storage
+2. **Model Serving** — Deploy models on GPU. Ask which models:
+   - `muse-glimmer` — RedHatAI/Muse-Glimmer-30B-FP8 (multimodal, tool calling, reasoning)
+   - `qwen3-8b` — Qwen3-8B
+   - `qwen3-27b` — Qwen3-27B
+   - `thinkingcap-27b` — ThinkingCap-27B
+3. **MaaS** (Models-as-a-Service) — API gateway, auth, rate limiting, subscriptions (heavy — installs Kuadrant, OTel, Tempo, COO)
+4. **MLflow** — Experiment tracking and model tracing
+5. **Observability** — GPU metrics, MonitoringStack, dashboards
+
+Also ask:
+- Do they need **GPU nodes provisioned**? If yes: how many, what instance type (e.g., `g6e.8xlarge`)?
+- What is the **cluster domain**? (needed for MaaS routing — e.g., `apps.ocp.example.com`)
+
+### What lives where
+
+| Layer | Directory | Key files | Depends on |
+|-------|-----------|-----------|------------|
+| Base Config | `argo-apps/rhoai-config/` | `dsc-base.yaml`, `dashboard-config.yaml`, `minio.yaml`, `minio-namespace.yaml` | RHOAI operator |
+| Model Serving | `argo-apps/rhoai-playground/` | `muse-glimmer-*.yaml`, `qwen3-*.yaml`, `thinkingcap-*.yaml` | Base Config |
+| MaaS | `argo-apps/rhoai-maas/` | Kustomize — apply with `oc apply -k`. Update `cluster-config.yaml` with cluster domain first | Base Config |
+| MLflow | `argo-apps/rhoai-mlflow/` | `dsc-mlflow-patch.yaml`, `mlflow.yaml` | Base Config |
+| Observability | `argo-apps/rhoai-observability/` | Monitoring stack, GPU metrics | Base Config + MaaS |
+
+### Deployment notes
+- **Base Config is always first** — it patches the DSC and dashboard. Other layers build on it
+- **Model Serving**: each model needs a GPU node. Do NOT deploy all models — only what the user asks for. Each model has its own `*-inferenceservice.yaml`
+- **MaaS cluster-specific values**: before applying `argo-apps/rhoai-maas/`, update `cluster-config.yaml`: set `MAAS_HOST` to `maas.apps.<cluster-domain>` and `MAAS_ENDPOINT_OVERRIDE` to `https://maas.apps.<cluster-domain>/muse-glimmer/muse-glimmer`
+- **GPU nodes**: if provisioning, create a MachineSet with `nvidia.com/gpu=:NoSchedule` taint. Wait for nodes to be Ready and NVIDIA GPU Operator DaemonSet pods running before deploying models
+- **MinIO** is in the `minio` namespace. Model storage configs reference `minio-service.minio.svc.cluster.local:9000`
+- **Reference docs**: always check `docs/` folder first for RHOAI product documentation PDFs. docs.redhat.com is blocked
+
+### Example Prompt
+Users can start a Claude Code session in this directory with a prompt like:
+
+> I'm logged into an OpenShift cluster as admin with RHOAI installed. Help me deploy RHOAI features from this repo.
+
+The agent should then present the feature menu above and ask the user to select which features to enable, how many GPU nodes to provision, and what the cluster domain is.
+
 ## Operator Installation
 - Every operator MUST be installed in its own dedicated namespace
 - Never install multiple operators into a shared namespace (e.g., `openshift-operators`)

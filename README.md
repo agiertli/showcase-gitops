@@ -8,7 +8,7 @@ RHOAI features are split into independent, composable layers. Apply `rhoai-confi
 
 | Layer | Directory | What it enables | Depends on |
 |-------|-----------|----------------|------------|
-| **Base config** | `argo-apps/rhoai-config/` | Dashboard, KServe, Model Registry, Model Catalog | RHOAI operator installed |
+| **Base config** | `argo-apps/rhoai-config/` | Dashboard, KServe, Model Registry, Model Catalog, GenAI Playground | RHOAI operator installed |
 | **Model Serving** | `argo-apps/rhoai-playground/` | InferenceServices, ServingRuntimes, LlamaStack | Base config |
 | **MLflow** | `argo-apps/rhoai-mlflow/` | MLflow operator + MLflow CR | Base config |
 | **MaaS** | `argo-apps/rhoai-maas/` | Models-as-a-Service, Kuadrant, gateway, auth, observability operators | Base config |

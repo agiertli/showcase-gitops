@@ -5,7 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
   name: minio-pvc
-  namespace: rhoai-playground
+  namespace: minio
 spec:
   accessModes:
     - ReadWriteOnce
@@ -20,7 +20,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "1"
   name: minio-secret
-  namespace: rhoai-playground
+  namespace: minio
 stringData:
   minio_root_user: minio
   minio_root_password: minio123
@@ -31,7 +31,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
   name: minio
-  namespace: rhoai-playground
+  namespace: minio
 spec:
   replicas: 1
   selector:
@@ -100,7 +100,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
   name: minio-service
-  namespace: rhoai-playground
+  namespace: minio
 spec:
   ports:
     - name: api
@@ -121,7 +121,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
   name: minio-api
-  namespace: rhoai-playground
+  namespace: minio
 spec:
   to:
     kind: Service
@@ -139,7 +139,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "3"
   name: minio-ui
-  namespace: rhoai-playground
+  namespace: minio
 spec:
   to:
     kind: Service
