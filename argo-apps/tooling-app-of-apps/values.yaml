@@ -60,6 +60,12 @@ applications:
     destination: amq
     enabled: false
 
+  - name: rhoai-config
+    path: rhoai-config
+    destination: redhat-ods-applications
+    syncWave: "0"
+    enabled: true
+
   - name: rhoai-playground
     path: rhoai-playground
     destination: rhoai-playground

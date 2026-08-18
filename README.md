@@ -1,17 +1,29 @@
 # GitOpsified showcase of selected Red Hat Products
 
-This repository helps to get quickly up and running with selected Red Hat products. It's not meant to be used in production-like environments, but mostly for demo purposes.
+This repository helps to get quickly up and running with selected Red Hat products. It's designed for demo, PoC, and enablement purposes — not production. The manifests can be applied via ArgoCD (app-of-apps) or used as a reference for manual/agentic setup on an existing cluster.
 
-Here is a list of currently supported ArgoCD Application and the respective Red Hat products which they install:
+## RHOAI Feature Layers
 
-//test 21.7. 17:50
+RHOAI features are split into independent, composable layers. Apply `rhoai-config` first, then layer on whichever features you need:
 
- - Red Hat OpenShift Pipelines 
+| Layer | Directory | What it enables | Depends on |
+|-------|-----------|----------------|------------|
+| **Base config** | `argo-apps/rhoai-config/` | Dashboard, KServe, Model Registry, Model Catalog | RHOAI operator installed |
+| **Model Serving** | `argo-apps/rhoai-playground/` | InferenceServices, ServingRuntimes, LlamaStack | Base config |
+| **MLflow** | `argo-apps/rhoai-mlflow/` | MLflow operator + MLflow CR | Base config |
+| **MaaS** | `argo-apps/rhoai-maas/` | Models-as-a-Service, Kuadrant, gateway, auth, observability operators | Base config |
+| **Observability** | `argo-apps/rhoai-observability/` | MonitoringStack, dashboards | Base config + MaaS |
+
+Each layer carries its own DSC patch (ServerSideApply) that enables only the components it needs. This means you can deploy Model Registry + Catalog without MaaS, or MLflow without the playground.
+
+## Other Supported Products
+
+ - Red Hat OpenShift Pipelines
  - Red Hat OpenShift Dev Spaces
  - Red Hat Trusted Artifact Signer (RHTAS)
  - Namespace Config Operator (Community support only, integrated with Dev Spaces)
  - Red Hat Single Sign On (integrated with RHTAS)
- - ArgoCD RBAC - this is to prevent fixing ArgoCD with `cluster-admin` permissions and allow more fine grained permissions.
+ - ArgoCD RBAC - fine-grained permissions instead of cluster-admin
 
 Component diagram of this solution looks like this:
 
