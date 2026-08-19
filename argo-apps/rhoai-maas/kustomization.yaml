@@ -3,13 +3,7 @@ kind: Kustomization
 
 resources:
 - cluster-config.yaml
-- coo-namespace.yaml
-- coo-operatorgroup.yaml
-- coo-subscription.yaml
-- dashboard-config-patch.yaml
-- dashboard-llmis-rbac.yaml
 - dsc-maas-patch.yaml
-- dsci-monitoring-patch.yaml
 - kuadrant-namespace.yaml
 - kuadrant.yaml
 - maas-api-resource-override.yaml
@@ -21,24 +15,16 @@ resources:
 - maas-model-ref-thinkingcap-27b.yaml
 - maas-model-ref.yaml
 - maas-subscription.yaml
-- otel-namespace.yaml
-- otel-operatorgroup.yaml
-- otel-subscription.yaml
-- perses-coo-networkpolicy.yaml
 - postgresql.yaml
 - remove-kuadrant-wasm-from-dsg.yaml
 - restart-controllers-job.yaml
 - rhcl-namespace.yaml
 - rhcl-operatorgroup.yaml
 - rhcl-subscription.yaml
-- tempo-namespace.yaml
-- tempo-operatorgroup.yaml
-- tempo-subscription.yaml
 - tenant-telemetry.yaml
 - tls-authorino-cr.yaml
 - tls-authorino-deployment.yaml
 - tls-authorino-service.yaml
-- user-workload-monitoring.yaml
 
 replacements:
 - source:

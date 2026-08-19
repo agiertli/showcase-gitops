@@ -6,6 +6,7 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
   name: muse-glimmer
   namespace: muse-glimmer
 spec:

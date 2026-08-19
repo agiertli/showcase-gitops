@@ -30,6 +30,7 @@ spec:
         namespace: redhat-ods-monitoring
         type: configmap
       enable: true
+      insecureSkipVerify: true
     kubernetesAuth:
       enable: true
   config:

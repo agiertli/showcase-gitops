@@ -5,5 +5,5 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  MAAS_HOST: maas.apps.ocp.b6ngg.sandbox1066.opentlc.com
-  MAAS_ENDPOINT_OVERRIDE: https://maas.apps.ocp.b6ngg.sandbox1066.opentlc.com/muse-glimmer/muse-glimmer
+  MAAS_HOST: maas.apps.ocp.dghv9.sandbox258.opentlc.com
+  MAAS_ENDPOINT_OVERRIDE: https://maas.apps.ocp.dghv9.sandbox258.opentlc.com/muse-glimmer/muse-glimmer

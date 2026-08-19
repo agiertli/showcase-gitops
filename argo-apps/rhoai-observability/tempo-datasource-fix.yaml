@@ -1,0 +1,39 @@
+# Workaround for RHOAI 3.4.3 + COO 1.5.1 bug:
+# Same issue as cluster-prometheus-datasource — the RHOAI monitoring controller
+# generates a PersesDatasource for Tempo but omits spec.client.tls.caCert.namespace,
+# which COO 1.5.1 requires. Without this bootstrap, the Monitoring CR stays in Error
+# state and the operator won't create PrometheusRules, dashboards, or other monitoring
+# resources.
+apiVersion: perses.dev/v1alpha2
+kind: PersesDatasource
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+  name: tempo-datasource
+  namespace: redhat-ods-monitoring
+  labels:
+    platform.opendatahub.io/part-of: monitoring
+spec:
+  client:
+    tls:
+      caCert:
+        certPath: service-ca.crt
+        name: prometheus-web-tls-ca
+        namespace: redhat-ods-monitoring
+        type: configmap
+      enable: true
+    kubernetesAuth:
+      enable: true
+  config:
+    default: false
+    display:
+      name: Tempo
+      description: Bootstrap for RHOAI operator — fields are overwritten by the controller
+    plugin:
+      kind: TempoDatasource
+      spec:
+        proxy:
+          kind: HTTPProxy
+          spec:
+            url: https://tempo-data-science-tempomonolithic-gateway.redhat-ods-monitoring.svc:8080

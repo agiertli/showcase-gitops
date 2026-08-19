@@ -1,0 +1,36 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+# Operator installs — COO
+- coo-namespace.yaml
+- coo-operatorgroup.yaml
+- coo-subscription.yaml
+# Operator installs — OpenTelemetry
+- otel-namespace.yaml
+- otel-operatorgroup.yaml
+- otel-subscription.yaml
+# Operator installs — Tempo
+- tempo-namespace.yaml
+- tempo-operatorgroup.yaml
+- tempo-subscription.yaml
+# DSCI + dashboard config
+- dsci-monitoring-patch.yaml
+- dashboard-config-patch.yaml
+- user-workload-monitoring.yaml
+# Network policies
+- perses-coo-networkpolicy.yaml
+- prometheus-thanos-networkpolicy.yaml
+# Monitors + RBAC
+- cluster-prometheus-datasource-fix.yaml
+- dcgm-exporter-cluster-podmonitor.yaml
+- observability-monitors.yaml
+- otel-collector-cluster-servicemonitor.yaml
+- otel-collector-rbac.yaml
+- otel-collector-servicemonitor.yaml
+# PersesDatasource bootstrap fixes (RHOAI 3.4.3 + COO 1.5.1 namespace bug)
+- tempo-datasource-fix.yaml
+# GPU metrics recording rule (accelerator_gpu_utilization from DCGM)
+- accelerator-gpu-metrics.yaml
+# RHOAI operator restart (detects COO CRDs → creates Perses, Prometheus, etc.)
+- restart-rhoai-operator-job.yaml

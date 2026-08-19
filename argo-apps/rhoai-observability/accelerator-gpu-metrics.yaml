@@ -1,0 +1,16 @@
+# The observability dashboard queries accelerator_gpu_utilization but only
+# DCGM_FI_DEV_GPU_UTIL exists. The OTel collector's relabel_configs attempt
+# to rename DCGM metrics but __name__ isn't available in target relabeling.
+# This recording rule bridges the gap in the platform Prometheus.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: accelerator-gpu-metrics
+  namespace: nvidia-gpu-operator
+spec:
+  groups:
+  - name: accelerator-metrics
+    interval: 30s
+    rules:
+    - record: accelerator_gpu_utilization
+      expr: DCGM_FI_DEV_GPU_UTIL
