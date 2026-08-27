@@ -156,7 +156,47 @@ oc get dscinitializations
 
 **Expected:** A DSCInitialization resource exists (created automatically when the DSC was applied).
 
-### 2.3 — Verify DSC reconciliation
+### 2.3 — Fix Model Registry controller OOM (if needed)
+
+The Model Registry operator controller may get OOMKilled with its default memory limits. Check:
+
+```bash
+oc get pods -n redhat-ods-applications -l control-plane=modelregistry-operator-controller-manager
+```
+
+If the pod shows `OOMKilled` or `CrashLoopBackOff`, patch its memory limits:
+
+```bash
+oc patch deployment modelregistry-operator-controller-manager -n redhat-ods-applications --type=json -p '[
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/limits/memory", "value": "512Mi"},
+  {"op": "replace", "path": "/spec/template/spec/containers/0/resources/requests/memory", "value": "256Mi"}
+]'
+```
+
+Verify it recovers:
+
+```bash
+oc get pods -n redhat-ods-applications -l control-plane=modelregistry-operator-controller-manager -w
+```
+
+**Expected:** Pod reaches Running 1/1.
+
+**Note:** The RHOAI operator may revert this patch on next reconciliation. If it keeps OOMing, you can disable Model Registry for now — it's not in the critical path for model serving or MaaS:
+
+```bash
+oc apply --server-side --force-conflicts -f - <<'EOF'
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+spec:
+  components:
+    modelregistry:
+      managementState: Removed
+EOF
+```
+
+### 2.4 — Verify DSC reconciliation
 
 ```bash
 oc get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
@@ -170,7 +210,7 @@ If stuck, check conditions:
 oc get datasciencecluster default-dsc -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}'
 ```
 
-### 2.4 — Verify the data-science-gateway exists
+### 2.5 — Verify the data-science-gateway exists
 
 KServe deploys this gateway — it's a prerequisite for MaaS later.
 
@@ -180,7 +220,7 @@ oc get gateway data-science-gateway -n openshift-ingress
 
 **Expected:** Gateway exists. On bare-metal, the Gateway's LoadBalancer IP will show `Pending` — that's normal, OpenShift Routes handle external access instead. If the Gateway resource itself doesn't exist, wait for DSC to finish reconciling.
 
-### 2.5 — Patch the OdhDashboardConfig (Model Catalog + GenAI Studio)
+### 2.6 — Patch the OdhDashboardConfig (Model Catalog + GenAI Studio)
 
 Enables Model Catalog (`disableModelCatalog: false`) and GenAI Studio (`genAiStudio: true`) in the dashboard.
 
@@ -188,7 +228,7 @@ Enables Model Catalog (`disableModelCatalog: false`) and GenAI Studio (`genAiStu
 oc apply --server-side --force-conflicts -f argo-apps/rhoai-config/dashboard-config.yaml
 ```
 
-### 2.6 — Apply dashboard RBAC for LLMInferenceService
+### 2.7 — Apply dashboard RBAC for LLMInferenceService
 
 Grants the dashboard ServiceAccount permission to manage LLMInferenceService resources.
 
@@ -196,7 +236,7 @@ Grants the dashboard ServiceAccount permission to manage LLMInferenceService res
 oc apply -f argo-apps/rhoai-config/dashboard-llmis-rbac.yaml
 ```
 
-### 2.7 — Verify dashboard is accessible
+### 2.8 — Verify dashboard is accessible
 
 ```bash
 oc get route rhods-dashboard -n redhat-ods-applications -o jsonpath='{.spec.host}'
