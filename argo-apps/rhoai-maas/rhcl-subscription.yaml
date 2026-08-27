@@ -14,8 +14,8 @@ spec:
   config:
     resources:
       requests:
-        memory: 800Mi
+        memory: 2Gi
         cpu: 100m
       limits:
-        memory: 1600Mi
+        memory: 8Gi
         cpu: 500m
