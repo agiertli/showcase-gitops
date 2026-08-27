@@ -107,23 +107,13 @@ oc get csv -n redhat-ods-operator -w
 
 **Expected:** CSV reaches `Succeeded` phase. This may take 2-5 minutes.
 
-### 1.3 — Verify RHOAI created its default resources
+### 1.3 — Verify the operator is running
 
 ```bash
-oc get dscinitializations default-dsci
-oc get datasciencecluster default-dsc
-oc get odhdashboardconfig odh-dashboard-config -n redhat-ods-applications
+oc get pods -n redhat-ods-operator -l name=rhods-operator
 ```
 
-**Expected:** All three resources exist. The DSC may still be reconciling — that's fine, we'll patch it next.
-
-### 1.4 — Verify the RHOAI dashboard is deploying
-
-```bash
-oc get pods -n redhat-ods-applications -l app=rhods-dashboard
-```
-
-**Expected:** Dashboard pods are Running or starting.
+**Expected:** Operator pod is Running. The DSC and DSCI do NOT get created automatically — you will create the DSC manually in Phase 2.1, which triggers DSCI creation.
 
 ---
 
@@ -131,9 +121,9 @@ oc get pods -n redhat-ods-applications -l app=rhods-dashboard
 
 Source: `argo-apps/rhoai-config/`
 
-### 2.1 — Patch the DataScienceCluster
+### 2.1 — Create the DataScienceCluster
 
-This enables Dashboard, KServe (vLLM + OpenVINO runtimes), Model Registry, and Workbenches.
+This creates the DSC (which also triggers DSCI creation) with Dashboard, KServe (vLLM + OpenVINO runtimes), Model Registry, and Workbenches enabled.
 
 The file `argo-apps/rhoai-config/dsc-base.yaml` does not include Workbenches by default. Apply with Workbenches added:
 
@@ -158,7 +148,15 @@ spec:
 EOF
 ```
 
-### 2.2 — Verify DSC reconciliation
+### 2.2 — Verify DSCI was created
+
+```bash
+oc get dscinitializations
+```
+
+**Expected:** A DSCInitialization resource exists (created automatically when the DSC was applied).
+
+### 2.3 — Verify DSC reconciliation
 
 ```bash
 oc get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
@@ -172,7 +170,7 @@ If stuck, check conditions:
 oc get datasciencecluster default-dsc -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}'
 ```
 
-### 2.3 — Verify the data-science-gateway exists
+### 2.4 — Verify the data-science-gateway exists
 
 KServe deploys this gateway — it's a prerequisite for MaaS later.
 
@@ -182,7 +180,7 @@ oc get gateway data-science-gateway -n openshift-ingress
 
 **Expected:** Gateway exists. On bare-metal, the Gateway's LoadBalancer IP will show `Pending` — that's normal, OpenShift Routes handle external access instead. If the Gateway resource itself doesn't exist, wait for DSC to finish reconciling.
 
-### 2.4 — Patch the OdhDashboardConfig (Model Catalog + GenAI Studio)
+### 2.5 — Patch the OdhDashboardConfig (Model Catalog + GenAI Studio)
 
 Enables Model Catalog (`disableModelCatalog: false`) and GenAI Studio (`genAiStudio: true`) in the dashboard.
 
@@ -190,7 +188,7 @@ Enables Model Catalog (`disableModelCatalog: false`) and GenAI Studio (`genAiStu
 oc apply --server-side --force-conflicts -f argo-apps/rhoai-config/dashboard-config.yaml
 ```
 
-### 2.5 — Apply dashboard RBAC for LLMInferenceService
+### 2.6 — Apply dashboard RBAC for LLMInferenceService
 
 Grants the dashboard ServiceAccount permission to manage LLMInferenceService resources.
 
@@ -198,7 +196,7 @@ Grants the dashboard ServiceAccount permission to manage LLMInferenceService res
 oc apply -f argo-apps/rhoai-config/dashboard-llmis-rbac.yaml
 ```
 
-### 2.6 — Verify dashboard is accessible
+### 2.7 — Verify dashboard is accessible
 
 ```bash
 oc get route rhods-dashboard -n redhat-ods-applications -o jsonpath='{.spec.host}'
