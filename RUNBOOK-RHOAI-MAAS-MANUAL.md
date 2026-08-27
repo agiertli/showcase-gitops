@@ -274,7 +274,7 @@ For L40S (48GB), you can use `qwen3-27b` or `thinkingcap-27b`:
 oc apply -f argo-apps/rhoai-playground/qwen3-27b-inferenceservice.yaml
 ```
 
-**Note:** The LLMInferenceService manifest includes `spec.router.gateway.refs` pointing to `maas-default-gateway` which doesn't exist yet (MaaS is installed in Phases 5-8). This is fine — the model deploys and serves via KServe regardless. The `llmisvc-controller-manager` will log a warning about the missing gateway and skip HTTPRoute creation. Once MaaS is installed and the gateway exists, the controller restart in Phase 9.1 will re-reconcile and create the HTTPRoute.
+**Note:** The LLMInferenceService manifest includes `spec.router.gateway.refs` pointing to `maas-default-gateway` which doesn't exist yet (MaaS is installed in Phases 6-9). This is fine — the model deploys and serves via KServe regardless. The `llmisvc-controller-manager` will log a warning about the missing gateway and skip HTTPRoute creation. Once MaaS is installed and the gateway exists, the controller restart in Phase 10.1 will re-reconcile and create the HTTPRoute.
 
 ### 3.3 — Wait for the model to be Ready
 
@@ -541,7 +541,7 @@ Open the RHOAI dashboard -> GenAI Studio -> Playground. You should see the `qwen
 
 Hardware Profiles let users see GPU configurations in the RHOAI dashboard when deploying models.
 
-### 4.1 — Create a HardwareProfile
+### 5.1 — Create a HardwareProfile
 
 Adjust GPU count and memory to match your hardware:
 
@@ -580,7 +580,7 @@ spec:
 EOF
 ```
 
-### 4.2 — Verify HardwareProfile appears in dashboard
+### 5.2 — Verify HardwareProfile appears in dashboard
 
 ```bash
 oc get hardwareprofile -n redhat-ods-applications
@@ -595,6 +595,7 @@ oc get hardwareprofile -n redhat-ods-applications
 At this point you have:
 - RHOAI operator with Dashboard, KServe, Model Registry, Model Catalog, Workbenches, and GenAI Studio
 - A running model (vLLM on GPU)
+- GenAI Studio Playground (if Phase 4 was done)
 - Hardware Profiles in the dashboard
 
 If time is short, you can stop here. The customer has a functional RHOAI installation. MaaS adds API gateway, authentication, rate limiting, and usage tracking on top.
@@ -607,14 +608,14 @@ Source: `argo-apps/rhoai-maas/`
 
 MaaS uses Kuadrant for API key auth and rate limiting. Kuadrant is provided by the RHCL operator.
 
-### 5.1 — Create the operator namespace and OperatorGroup
+### 6.1 — Create the operator namespace and OperatorGroup
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/rhcl-namespace.yaml
 oc apply -f argo-apps/rhoai-maas/rhcl-operatorgroup.yaml
 ```
 
-### 5.2 — Create the Subscription
+### 6.2 — Create the Subscription
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/rhcl-subscription.yaml
@@ -622,7 +623,7 @@ oc apply -f argo-apps/rhoai-maas/rhcl-subscription.yaml
 
 **Note:** The subscription uses `installPlanApproval: Manual`. You must approve the InstallPlan.
 
-### 5.3 — Approve the InstallPlan
+### 6.3 — Approve the InstallPlan
 
 ```bash
 # Find the pending InstallPlan
@@ -632,7 +633,7 @@ oc get installplan -n rhcl-operator
 oc patch installplan <INSTALLPLAN_NAME> -n rhcl-operator --type merge -p '{"spec":{"approved":true}}'
 ```
 
-### 5.4 — Wait for CSV to succeed
+### 6.4 — Wait for CSV to succeed
 
 ```bash
 oc get csv -n rhcl-operator -w
@@ -640,7 +641,7 @@ oc get csv -n rhcl-operator -w
 
 **Expected:** RHCL operator CSV reaches `Succeeded`.
 
-### 5.5 — Verify Kuadrant CRD exists
+### 6.5 — Verify Kuadrant CRD exists
 
 ```bash
 oc get crd kuadrants.kuadrant.io
@@ -652,19 +653,19 @@ oc get crd kuadrants.kuadrant.io
 
 ## Phase 7: Configure MaaS Infrastructure
 
-### 6.1 — Create kuadrant-system namespace
+### 7.1 — Create kuadrant-system namespace
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/kuadrant-namespace.yaml
 ```
 
-### 6.2 — Deploy Kuadrant CR
+### 7.2 — Deploy Kuadrant CR
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/kuadrant.yaml
 ```
 
-### 6.3 — Verify Kuadrant is Ready
+### 7.3 — Verify Kuadrant is Ready
 
 ```bash
 oc get kuadrant kuadrant -n kuadrant-system -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}'
@@ -678,7 +679,7 @@ oc get pods -n kuadrant-system
 
 Authorino and Limitador pods should be running.
 
-### 6.4 — Deploy PostgreSQL for MaaS
+### 7.4 — Deploy PostgreSQL for MaaS
 
 MaaS needs a database but RHOAI doesn't deploy one.
 
@@ -686,7 +687,7 @@ MaaS needs a database but RHOAI doesn't deploy one.
 oc apply -f argo-apps/rhoai-maas/postgresql.yaml
 ```
 
-### 6.5 — Verify PostgreSQL is Ready
+### 7.5 — Verify PostgreSQL is Ready
 
 ```bash
 oc wait deployment/maas-postgresql -n redhat-ods-applications --for=condition=Available --timeout=120s
@@ -700,13 +701,13 @@ oc get pods -n redhat-ods-applications -l app=maas-postgresql
 
 Pod should be `Running` and `1/1 Ready`.
 
-### 6.6 — Create the DB connection Secret
+### 7.6 — Create the DB connection Secret
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/maas-db-config.yaml
 ```
 
-### 6.7 — Verify Secret exists
+### 7.7 — Verify Secret exists
 
 ```bash
 oc get secret maas-db-config -n redhat-ods-applications
@@ -714,7 +715,7 @@ oc get secret maas-db-config -n redhat-ods-applications
 
 **Expected:** Secret exists.
 
-### 6.8 — Patch DSC to enable Models-as-a-Service
+### 7.8 — Patch DSC to enable Models-as-a-Service
 
 This tells RHOAI to deploy the maas-controller, maas-api, and create the `models-as-a-service` namespace.
 
@@ -722,7 +723,7 @@ This tells RHOAI to deploy the maas-controller, maas-api, and create the `models
 oc apply --server-side --force-conflicts -f argo-apps/rhoai-maas/dsc-maas-patch.yaml
 ```
 
-### 6.9 — Verify MaaS components are deploying
+### 7.9 — Verify MaaS components are deploying
 
 This takes 2-5 minutes. The operator deploys several components.
 
@@ -755,7 +756,7 @@ oc get pods -n redhat-ods-applications -l control-plane=llmisvc-controller-manag
 
 ## Phase 8: Configure MaaS Networking and Auth
 
-### 7.1 — Create the TLS cert-generating Service
+### 8.1 — Create the TLS cert-generating Service
 
 This headless Service tricks OpenShift's service-ca into generating a TLS cert for the MaaS gateway.
 
@@ -777,7 +778,7 @@ spec:
 EOF
 ```
 
-### 7.2 — Verify TLS Secret was generated
+### 8.2 — Verify TLS Secret was generated
 
 ```bash
 oc get secret maas-gateway-tls -n openshift-ingress
@@ -785,7 +786,7 @@ oc get secret maas-gateway-tls -n openshift-ingress
 
 **Expected:** Secret exists (created by OpenShift service-ca within seconds).
 
-### 7.3 — Deploy the MaaS Gateway
+### 8.3 — Deploy the MaaS Gateway
 
 The Gateway TLS `certificateRefs` references `cert-manager-ingress-cert`. If your cluster does NOT have cert-manager with a wildcard cert, use `maas-gateway-tls` (the service-ca cert from step 7.1) instead.
 
@@ -845,7 +846,7 @@ spec:
 EOF
 ```
 
-### 7.4 — Verify the Gateway is Accepted
+### 8.4 — Verify the Gateway is Accepted
 
 ```bash
 oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .status.conditions[*]}{.type}: {.status}{"\n"}{end}'
@@ -855,7 +856,7 @@ oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .st
 
 **Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 7.5 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
 
-### 7.5 — Create the MaaS Route (stable DNS)
+### 8.5 — Create the MaaS Route (stable DNS)
 
 Replace `YOUR_CLUSTER_DOMAIN` with your actual cluster domain.
 
@@ -880,7 +881,7 @@ spec:
 EOF
 ```
 
-### 7.6 — Verify the Route is Admitted
+### 8.6 — Verify the Route is Admitted
 
 ```bash
 oc get route maas-default-gateway -n openshift-ingress
@@ -888,7 +889,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 **Expected:** Route shows `Admitted` with the host `maas.YOUR_CLUSTER_DOMAIN`.
 
-### 7.7 — Apply the Kuadrant WASM filter fix (CRITICAL)
+### 8.7 — Apply the Kuadrant WASM filter fix (CRITICAL)
 
 Without this, Kuadrant's WASM filters leak to the data-science-gateway and break the RHOAI dashboard with 401 errors.
 
@@ -896,11 +897,11 @@ Without this, Kuadrant's WASM filters leak to the data-science-gateway and break
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
 ```
 
-### 7.8 — Verify dashboard still works
+### 8.8 — Verify dashboard still works
 
 Open the RHOAI dashboard in a browser. If you get 401 errors, the WASM filter fix didn't apply correctly — re-check the EnvoyFilter.
 
-### 7.9 — Bootstrap Authorino TLS
+### 8.9 — Bootstrap Authorino TLS
 
 Authorino needs TLS certs to communicate with the maas-api. Three patches in sequence:
 
@@ -956,7 +957,7 @@ oc exec -n kuadrant-system deploy/authorino -c authorino -- env | grep SSL_CERT_
 
 ## Phase 9: Register Model with MaaS
 
-### 8.1 — Check HTTPRoute status
+### 9.1 — Check HTTPRoute status
 
 The `llmisvc-controller-manager` creates HTTPRoutes when it sees a LLMInferenceService with `spec.router.gateway.refs`. Since the model was deployed in Phase 3 before the gateway existed, the HTTPRoute may not exist yet.
 
@@ -964,9 +965,9 @@ The `llmisvc-controller-manager` creates HTTPRoutes when it sees a LLMInferenceS
 oc get httproute -n rhoai-playground
 ```
 
-If no HTTPRoute exists, that's expected — the controller restart in Phase 9.1 will trigger re-reconciliation and create it. If it already exists, even better.
+If no HTTPRoute exists, that's expected — the controller restart in Phase 10.1 will trigger re-reconciliation and create it. If it already exists, even better.
 
-### 8.2 — Create the MaaSModelRef
+### 9.2 — Create the MaaSModelRef
 
 For `qwen3-8b`:
 
@@ -986,7 +987,7 @@ EOF
 
 **Note:** Use `kind: LLMInferenceService`, NOT `InferenceService` (gotcha #2 in `argo-apps/rhoai-maas/README.md`).
 
-### 8.3 — Verify MaaSModelRef status
+### 9.3 — Verify MaaSModelRef status
 
 ```bash
 oc get maasmodelref -n rhoai-playground -o jsonpath='{range .items[*]}{.metadata.name}: {.status.phase}{"\n"}{end}'
@@ -994,7 +995,7 @@ oc get maasmodelref -n rhoai-playground -o jsonpath='{range .items[*]}{.metadata
 
 **Expected:** Phase is `Ready` or `Available`.
 
-### 8.4 — Enable telemetry on the Tenant
+### 9.4 — Enable telemetry on the Tenant
 
 ```bash
 oc apply -f - <<'EOF'
@@ -1014,7 +1015,7 @@ spec:
 EOF
 ```
 
-### 8.5 — Create the MaaSSubscription
+### 9.5 — Create the MaaSSubscription
 
 Adjust `owner.groups`, `owner.users`, `modelRefs`, and rate limits for your environment.
 
@@ -1043,7 +1044,7 @@ spec:
 EOF
 ```
 
-### 8.6 — Verify MaaSSubscription
+### 9.6 — Verify MaaSSubscription
 
 ```bash
 oc get maassubscription -n models-as-a-service -o jsonpath='{range .items[*]}{.metadata.name}: {.status.phase}{"\n"}{end}'
@@ -1051,7 +1052,7 @@ oc get maassubscription -n models-as-a-service -o jsonpath='{range .items[*]}{.m
 
 **Expected:** Phase shows `Accepted` or `Ready`.
 
-### 8.7 — Create the MaaSAuthPolicy
+### 9.7 — Create the MaaSAuthPolicy
 
 Without this, requests get 403 even with a valid API key.
 
@@ -1074,7 +1075,7 @@ spec:
 EOF
 ```
 
-### 8.8 — Verify MaaSAuthPolicy
+### 9.8 — Verify MaaSAuthPolicy
 
 ```bash
 oc get maasauthpolicy -n models-as-a-service
@@ -1084,9 +1085,9 @@ oc get maasauthpolicy -n models-as-a-service
 
 ---
 
-## Phase 9: Post-Deployment Workarounds
+## Phase 10: Post-Deployment Workarounds
 
-### 9.1 — Restart controllers to pick up new CRDs and create HTTPRoute
+### 10.1 — Restart controllers to pick up new CRDs and create HTTPRoute
 
 The `llmisvc-controller-manager` needs a restart for two reasons:
 1. To recognize AuthPolicy CRDs installed by RHCL
@@ -1101,7 +1102,7 @@ oc rollout restart deployment/llmisvc-controller-manager -n redhat-ods-applicati
 oc rollout restart deployment/kuadrant-operator-controller-manager -n rhcl-operator
 ```
 
-### 9.2 — Verify controllers are back and HTTPRoute was created
+### 10.2 — Verify controllers are back and HTTPRoute was created
 
 ```bash
 oc rollout status deployment/llmisvc-controller-manager -n redhat-ods-applications --timeout=120s
@@ -1120,7 +1121,7 @@ oc get httproute -n rhoai-playground
 oc logs -n redhat-ods-applications -l control-plane=llmisvc-controller-manager --tail=30
 ```
 
-### 9.3 — Fix maas-api OOM (RHOAI 3.4.x bug)
+### 10.3 — Fix maas-api OOM (RHOAI 3.4.x bug)
 
 The maas-api Deployment is hardcoded to 128Mi memory, which causes OOM. Patch to 512Mi.
 
@@ -1128,7 +1129,7 @@ The maas-api Deployment is hardcoded to 128Mi memory, which causes OOM. Patch to
 oc apply --server-side --force-conflicts -f argo-apps/rhoai-maas/maas-api-resource-override.yaml
 ```
 
-### 9.4 — Verify maas-api is running with new limits
+### 10.4 — Verify maas-api is running with new limits
 
 ```bash
 oc get deployment maas-api -n redhat-ods-applications -o jsonpath='{.spec.template.spec.containers[0].resources.limits.memory}'
@@ -1144,9 +1145,9 @@ oc get pods -n redhat-ods-applications -l app.kubernetes.io/name=maas-api
 
 ---
 
-## Phase 10: Smoke Test
+## Phase 11: Smoke Test
 
-### 10.1 — Create an API key
+### 11.1 — Create an API key
 
 Open the RHOAI dashboard -> Gen AI Studio -> API Keys -> Create API Key.
 
@@ -1163,7 +1164,7 @@ curl -sk "https://${MAAS_HOST}/maas-api/v1/models" \
   -H "Authorization: Bearer ${TOKEN}"
 ```
 
-### 10.2 — Test model inference via MaaS gateway
+### 11.2 — Test model inference via MaaS gateway
 
 Replace `API_KEY` with the key created in step 10.1.
 
@@ -1183,7 +1184,7 @@ curl -sk -X POST "https://${MAAS_HOST}/rhoai-playground/qwen3-8b/v1/chat/complet
 
 **Expected:** JSON response with the model's completion. If Qwen3 returns `<think>` tags, add the `chat_template_kwargs` parameter shown above.
 
-### 10.3 — Verify rate limiting works
+### 11.3 — Verify rate limiting works
 
 ```bash
 # Check if TokenRateLimitPolicy was created by MaaS
@@ -1192,7 +1193,7 @@ oc get tokenratelimitpolicy -n models-as-a-service
 
 **Expected:** A TokenRateLimitPolicy exists matching your subscription.
 
-### 10.4 — Full resource health check
+### 11.4 — Full resource health check
 
 ```bash
 echo "=== DataScienceCluster ==="
@@ -1243,7 +1244,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 ### Dashboard returns 401 after Kuadrant install
 
-Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 7.7:
+Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 8.7:
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
@@ -1251,7 +1252,7 @@ oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
 
 ### maas-api pod OOMKilled
 
-Apply the resource override from Phase 9.3. Check if the maas-controller reverted it:
+Apply the resource override from Phase 10.3. Check if the maas-controller reverted it:
 
 ```bash
 oc get deployment maas-api -n redhat-ods-applications -o jsonpath='{.metadata.annotations.opendatahub\.io/managed}'
@@ -1275,7 +1276,7 @@ Both `MaaSSubscription` AND `MaaSAuthPolicy` are required. The subscription gran
 
 ### models-as-a-service namespace not created
 
-The DSC patch from Phase 6.8 triggers this. Check DSC status:
+The DSC patch from Phase 7.8 triggers this. Check DSC status:
 
 ```bash
 oc get datasciencecluster default-dsc -o jsonpath='{.status.conditions[?(@.type=="modelsAsServiceReady")].message}'
@@ -1285,7 +1286,7 @@ If it reports a missing PostgreSQL connection, verify the `maas-db-config` Secre
 
 ### Authorino not authenticating (TLS errors in logs)
 
-Check all three TLS pieces from Phase 7.9:
+Check all three TLS pieces from Phase 8.9:
 
 ```bash
 oc get secret authorino-server-cert -n kuadrant-system   # must exist
@@ -1312,35 +1313,37 @@ Base Config: DSC + Dashboard + Model Catalog + Model Registry + Workbenches (Pha
   v
 Deploy Model (Phase 3) --> vLLM pod running, model visible in dashboard
   |
-Hardware Profiles (Phase 4) --> GPU configs visible in dashboard
+LlamaStack (Phase 4, optional) --> GenAI Studio Playground
+  |
+Hardware Profiles (Phase 5) --> GPU configs visible in dashboard
   |
   |  --- Checkpoint: core RHOAI working ---
   |
   v
-RHCL Operator (Phase 5) --> provides Kuadrant CRDs
+RHCL Operator (Phase 6) --> provides Kuadrant CRDs
   |
   v
-Kuadrant CR (Phase 6.2) --> Authorino + Limitador pods
+Kuadrant CR (Phase 7.2) --> Authorino + Limitador pods
   |
-PostgreSQL + DB Secret (Phase 6.4-6.6)
+PostgreSQL + DB Secret (Phase 7.4-7.6)
   |
-DSC MaaS patch (Phase 6.8) --> maas-controller, maas-api, models-as-a-service namespace
-  |
-  v
-Gateway + Route + TLS (Phase 7.1-7.6) --> maas-default-gateway
-  |
-WASM filter fix (Phase 7.7) --> prevents dashboard 401
-  |
-Authorino TLS (Phase 7.9) --> API key auth chain
+DSC MaaS patch (Phase 7.8) --> maas-controller, maas-api, models-as-a-service namespace
   |
   v
-MaaSModelRef (Phase 8.2) --> model visible in MaaS catalog
+Gateway + Route + TLS (Phase 8.1-8.6) --> maas-default-gateway
   |
-MaaSSubscription + MaaSAuthPolicy (Phase 8.5-8.7) --> rate limits + access control
+WASM filter fix (Phase 8.7) --> prevents dashboard 401
+  |
+Authorino TLS (Phase 8.9) --> API key auth chain
   |
   v
-Controller restart + maas-api fix (Phase 9)
+MaaSModelRef (Phase 9.2) --> model visible in MaaS catalog
+  |
+MaaSSubscription + MaaSAuthPolicy (Phase 9.5-9.7) --> rate limits + access control
   |
   v
-Working MaaS endpoint (Phase 10)
+Controller restart + maas-api fix (Phase 10)
+  |
+  v
+Working MaaS endpoint (Phase 11)
 ```
