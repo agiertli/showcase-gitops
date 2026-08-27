@@ -955,6 +955,12 @@ oc logs deployment/maas-controller -n redhat-ods-applications --tail=50
 
 ### 8.6 — Create the MaaS Route (stable DNS)
 
+The Route targets the Service `maas-default-gateway-data-science-gateway-class` — this is auto-created by the Gateway controller when the Gateway is accepted (step 8.4). Verify it exists before creating the Route:
+
+```bash
+oc get svc maas-default-gateway-data-science-gateway-class -n openshift-ingress
+```
+
 Replace `YOUR_CLUSTER_DOMAIN` with your actual cluster domain.
 
 ```bash
