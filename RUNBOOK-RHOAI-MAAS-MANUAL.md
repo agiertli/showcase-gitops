@@ -272,6 +272,8 @@ For L40S (48GB), you can use `qwen3-27b` or `thinkingcap-27b`:
 oc apply -f argo-apps/rhoai-playground/qwen3-27b-inferenceservice.yaml
 ```
 
+**Note:** The LLMInferenceService manifest includes `spec.router.gateway.refs` pointing to `maas-default-gateway` which doesn't exist yet (MaaS is installed in Phases 5-8). This is fine — the model deploys and serves via KServe regardless. The `llmisvc-controller-manager` will log a warning about the missing gateway and skip HTTPRoute creation. Once MaaS is installed and the gateway exists, the controller restart in Phase 9.1 will re-reconcile and create the HTTPRoute.
+
 ### 3.3 — Wait for the model to be Ready
 
 This is the longest wait — the model image (OCI modelcar) must download and vLLM must load the weights into GPU memory.
@@ -722,17 +724,15 @@ oc exec -n kuadrant-system deploy/authorino -c authorino -- env | grep SSL_CERT_
 
 ## Phase 8: Register Model with MaaS
 
-### 8.1 — Verify HTTPRoute exists for the model
+### 8.1 — Check HTTPRoute status
 
-The LLMInferenceService deployed in Phase 3 should already have an HTTPRoute pointing to the MaaS gateway.
+The `llmisvc-controller-manager` creates HTTPRoutes when it sees a LLMInferenceService with `spec.router.gateway.refs`. Since the model was deployed in Phase 3 before the gateway existed, the HTTPRoute may not exist yet.
 
 ```bash
 oc get httproute -n rhoai-playground
 ```
 
-**Expected:** An HTTPRoute exists with `parentRefs` pointing to `maas-default-gateway`.
-
-If no HTTPRoute was created, the LLMInferenceService is missing `spec.router.gateway.refs`. The manifests in `argo-apps/rhoai-playground/` already include this config — if you deployed with those files, it should be there.
+If no HTTPRoute exists, that's expected — the controller restart in Phase 9.1 will trigger re-reconciliation and create it. If it already exists, even better.
 
 ### 8.2 — Create the MaaSModelRef
 
@@ -854,9 +854,11 @@ oc get maasauthpolicy -n models-as-a-service
 
 ## Phase 9: Post-Deployment Workarounds
 
-### 9.1 — Restart controllers to pick up new CRDs
+### 9.1 — Restart controllers to pick up new CRDs and create HTTPRoute
 
-After RHCL installed, the llmisvc-controller and kuadrant-operator may need a restart to recognize AuthPolicy CRDs.
+The `llmisvc-controller-manager` needs a restart for two reasons:
+1. To recognize AuthPolicy CRDs installed by RHCL
+2. To re-reconcile the LLMInferenceService from Phase 3 — now that `maas-default-gateway` exists, it will create the HTTPRoute
 
 ```bash
 # Wait for AuthPolicy CRD
@@ -867,11 +869,23 @@ oc rollout restart deployment/llmisvc-controller-manager -n redhat-ods-applicati
 oc rollout restart deployment/kuadrant-operator-controller-manager -n rhcl-operator
 ```
 
-### 9.2 — Verify controllers are back
+### 9.2 — Verify controllers are back and HTTPRoute was created
 
 ```bash
 oc rollout status deployment/llmisvc-controller-manager -n redhat-ods-applications --timeout=120s
 oc rollout status deployment/kuadrant-operator-controller-manager -n rhcl-operator --timeout=120s
+```
+
+Verify the HTTPRoute now exists:
+
+```bash
+oc get httproute -n rhoai-playground
+```
+
+**Expected:** An HTTPRoute exists with `parentRefs` pointing to `maas-default-gateway`. If still missing, check the llmisvc-controller logs:
+
+```bash
+oc logs -n redhat-ods-applications -l control-plane=llmisvc-controller-manager --tail=30
 ```
 
 ### 9.3 — Fix maas-api OOM (RHOAI 3.4.x bug)
