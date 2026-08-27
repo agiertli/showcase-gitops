@@ -549,6 +549,8 @@ Hardware Profiles define GPU resource defaults, node selectors, and tolerations.
 
 Adjust nodeSelector labels and tolerations to match your GPU nodes. Run `oc get nodes --show-labels | grep gpu` to find the right label.
 
+**Important:** The HardwareProfile must be in the **same namespace as the LLMInferenceService** (e.g., `rhoai-playground`), not in `redhat-ods-applications`. The mutating webhook looks up the profile in the model's namespace.
+
 ```bash
 oc apply -f - <<'EOF'
 apiVersion: infrastructure.opendatahub.io/v1
@@ -559,7 +561,7 @@ metadata:
     opendatahub.io/disabled: "false"
     opendatahub.io/display-name: "NVIDIA GPU"
   name: nvidia-gpu
-  namespace: redhat-ods-applications
+  namespace: rhoai-playground
 spec:
   identifiers:
   - defaultCount: "4"
@@ -595,10 +597,10 @@ EOF
 ### 5.2 — Verify HardwareProfile exists
 
 ```bash
-oc get hardwareprofile -n redhat-ods-applications
+oc get hardwareprofile -n rhoai-playground
 ```
 
-**Expected:** `nvidia-gpu` appears in the list alongside any default profiles.
+**Expected:** `nvidia-gpu` appears in the list.
 
 ### 5.3 — How LLMInferenceService references a HardwareProfile
 
