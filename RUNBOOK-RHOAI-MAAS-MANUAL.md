@@ -123,7 +123,7 @@ Source: `argo-apps/rhoai-config/`
 
 ### 2.1 — Create the DataScienceCluster
 
-This creates the DSC (which also triggers DSCI creation) with Dashboard, KServe (vLLM + OpenVINO runtimes), Model Registry, and Workbenches enabled.
+This creates the DSC (which also triggers DSCI creation) with Dashboard, KServe (vLLM + OpenVINO runtimes), Model Registry, Workbenches, and LlamaStack operator (required for GenAI Studio Playground) enabled.
 
 The file `argo-apps/rhoai-config/dsc-base.yaml` does not include Workbenches by default. Apply with Workbenches added:
 
@@ -144,6 +144,8 @@ spec:
       managementState: Managed
       registriesNamespace: rhoai-model-registries
     workbenches:
+      managementState: Managed
+    llamastackoperator:
       managementState: Managed
 EOF
 ```
@@ -305,7 +307,237 @@ oc get llminferenceservice -n rhoai-playground
 
 ---
 
-## Phase 4: Hardware Profiles
+## Phase 4 (Optional): Deploy GenAI Studio Playground (LlamaStack)
+
+The Playground chat interface in GenAI Studio requires LlamaStack as a backend. Without it, the Playground UI has no model to talk to. Skip this phase if you only need API-level model access (via MaaS or direct KServe).
+
+### 4.1 — Verify LlamaStack operator is ready
+
+```bash
+oc get csv -n redhat-ods-applications | grep llama
+```
+
+**Expected:** LlamaStack operator CSV shows `Succeeded`. If not present, verify `llamastackoperator: Managed` is in your DSC (Phase 2.1).
+
+### 4.2 — Create the LlamaStack config
+
+This ConfigMap tells LlamaStack where to find the vLLM model. Replace `MODEL_NAME` and `MODEL_NAMESPACE` with values from the customization table at the top.
+
+The vLLM internal Service name follows the pattern: `<MODEL_NAME>-kserve-workload-svc.<MODEL_NAMESPACE>.svc.cluster.local:8000/v1`
+
+```bash
+oc apply -f - <<'EOF'
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: llama-stack-config
+  namespace: MODEL_NAMESPACE
+data:
+  config.yaml: |
+    version: "2"
+    distro_name: rh
+    apis:
+    - responses
+    - datasetio
+    - files
+    - inference
+    - safety
+    - scoring
+    - tool_runtime
+    - vector_io
+    providers:
+      inference:
+      - provider_id: sentence-transformers
+        provider_type: inline::sentence-transformers
+        config: {}
+      - provider_id: vllm-MODEL_NAME
+        provider_type: remote::vllm
+        config:
+          api_token: ${env.VLLM_API_TOKEN_1:=fake}
+          base_url: https://MODEL_NAME-kserve-workload-svc.MODEL_NAMESPACE.svc.cluster.local:8000/v1
+          max_tokens: ${env.VLLM_MAX_TOKENS:=4096}
+          tls_verify: ${env.VLLM_TLS_VERIFY:=true}
+      vector_io:
+      - provider_id: milvus
+        provider_type: inline::milvus
+        config:
+          db_path: /opt/app-root/src/.llama/distributions/rh/milvus.db
+          persistence:
+            backend: kv_default
+            namespace: vector_io::milvus
+      responses:
+      - provider_id: builtin
+        provider_type: inline::builtin
+        config:
+          persistence:
+            agent_state:
+              backend: kv_default
+              namespace: agents
+            responses:
+              backend: sql_default
+              max_write_queue_size: 10000
+              num_writers: 4
+              table_name: responses
+      eval: []
+      files:
+      - provider_id: meta-reference-files
+        provider_type: inline::localfs
+        config:
+          metadata_store:
+            backend: sql_default
+            table_name: files_metadata
+          storage_dir: /opt/app-root/src/.llama/distributions/rh/files
+      datasetio:
+      - provider_id: huggingface
+        provider_type: remote::huggingface
+        config:
+          kvstore:
+            backend: kv_default
+            namespace: datasetio::huggingface
+      scoring:
+      - provider_id: basic
+        provider_type: inline::basic
+        config: {}
+      - provider_id: llm-as-judge
+        provider_type: inline::llm-as-judge
+        config: {}
+      tool_runtime:
+      - provider_id: file-search
+        provider_type: inline::file-search
+        config: {}
+      - provider_id: model-context-protocol
+        provider_type: remote::model-context-protocol
+        config: {}
+      safety: []
+    metadata_store:
+      type: sqlite
+      db_path: /opt/app-root/src/.llama/distributions/rh/inference_store.db
+    storage:
+      backends:
+        kv_default:
+          db_path: /opt/app-root/src/.llama/distributions/rh/kvstore.db
+          type: kv_sqlite
+        sql_default:
+          db_path: /opt/app-root/src/.llama/distributions/rh/sql_store.db
+          type: sql_sqlite
+      stores:
+        conversations:
+          backend: sql_default
+          table_name: openai_conversations
+        inference:
+          backend: sql_default
+          table_name: inference_store
+        metadata:
+          backend: kv_default
+          namespace: registry
+    vector_stores:
+      default_provider_id: milvus
+      default_embedding_model:
+        provider_id: sentence-transformers
+        model_id: ibm-granite/granite-embedding-125m-english
+    registered_resources:
+      models:
+      - provider_id: sentence-transformers
+        model_id: sentence-transformers/ibm-granite/granite-embedding-125m-english
+        provider_model_id: ibm-granite/granite-embedding-125m-english
+        model_type: embedding
+        metadata:
+          embedding_dimension: 768
+      - provider_id: vllm-MODEL_NAME
+        model_id: MODEL_NAME
+        model_type: llm
+        metadata:
+          display_name: MODEL_NAME
+      shields: []
+      vector_stores: []
+      datasets: []
+      scoring_fns: []
+      benchmarks: []
+    server:
+      port: 8321
+EOF
+```
+
+### 4.3 — Deploy the LlamaStackDistribution
+
+Replace `MODEL_NAMESPACE` with the namespace from the customization table.
+
+```bash
+oc apply -f - <<'EOF'
+apiVersion: llamastack.io/v1alpha1
+kind: LlamaStackDistribution
+metadata:
+  labels:
+    opendatahub.io/dashboard: "true"
+  name: lsd-genai-playground
+  namespace: MODEL_NAMESPACE
+spec:
+  network:
+    allowedFrom:
+      namespaces:
+        - MODEL_NAMESPACE
+    exposeRoute: false
+  replicas: 1
+  server:
+    containerSpec:
+      command:
+        - /bin/sh
+        - -c
+        - llama stack run /etc/llama-stack/config.yaml
+      env:
+        - name: VLLM_TLS_VERIFY
+          value: "false"
+        - name: MILVUS_DB_PATH
+          value: ~/.llama/milvus.db
+        - name: FMS_ORCHESTRATOR_URL
+          value: http://localhost
+        - name: VLLM_MAX_TOKENS
+          value: "2048"
+        - name: VLLM_API_TOKEN_1
+          value: fake
+        - name: LLAMA_STACK_CONFIG_DIR
+          value: /opt/app-root/src/.llama/distributions/rh/
+      name: llama-stack
+      port: 8321
+      resources:
+        limits:
+          cpu: "2"
+          memory: 12Gi
+        requests:
+          cpu: 250m
+          memory: 500Mi
+    distribution:
+      name: rh-dev
+    userConfig:
+      configMapName: llama-stack-config
+EOF
+```
+
+### 4.4 — Verify LlamaStack is running
+
+```bash
+oc get pods -n rhoai-playground -l app.kubernetes.io/name=lsd-genai-playground
+```
+
+**Expected:** LlamaStack pod reaches Running 1/1. Check logs for startup:
+
+```bash
+oc logs -n rhoai-playground -l app.kubernetes.io/name=lsd-genai-playground --tail=20
+```
+
+Look for successful connection to the vLLM endpoint.
+
+### 4.5 — Test the Playground
+
+Open the RHOAI dashboard -> GenAI Studio -> Playground. You should see the `qwen3-8b` model in the dropdown. Send a test message.
+
+**Note:** If Qwen3 returns `<think>` tags in the Playground, this is the model's thinking mode. It cannot be suppressed from the Playground UI — only via the API with `"chat_template_kwargs": {"enable_thinking": false}`.
+
+---
+
+## Phase 5: Hardware Profiles
 
 Hardware Profiles let users see GPU configurations in the RHOAI dashboard when deploying models.
 
@@ -369,7 +601,7 @@ If time is short, you can stop here. The customer has a functional RHOAI install
 
 ---
 
-## Phase 5: Install RHCL Operator (Red Hat Connectivity Link / Kuadrant)
+## Phase 6: Install RHCL Operator (Red Hat Connectivity Link / Kuadrant)
 
 Source: `argo-apps/rhoai-maas/`
 
@@ -418,7 +650,7 @@ oc get crd kuadrants.kuadrant.io
 
 ---
 
-## Phase 6: Configure MaaS Infrastructure
+## Phase 7: Configure MaaS Infrastructure
 
 ### 6.1 — Create kuadrant-system namespace
 
@@ -521,7 +753,7 @@ oc get pods -n redhat-ods-applications -l control-plane=llmisvc-controller-manag
 
 ---
 
-## Phase 7: Configure MaaS Networking and Auth
+## Phase 8: Configure MaaS Networking and Auth
 
 ### 7.1 — Create the TLS cert-generating Service
 
@@ -722,7 +954,7 @@ oc exec -n kuadrant-system deploy/authorino -c authorino -- env | grep SSL_CERT_
 
 ---
 
-## Phase 8: Register Model with MaaS
+## Phase 9: Register Model with MaaS
 
 ### 8.1 — Check HTTPRoute status
 
