@@ -5,6 +5,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     opendatahub.io/hardware-profile-name: nvidia-gpu
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
   labels:
     networking.kserve.io/visibility: exposed
     opendatahub.io/dashboard: "true"

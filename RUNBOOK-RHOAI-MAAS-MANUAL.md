@@ -549,7 +549,7 @@ Hardware Profiles define GPU resource defaults, node selectors, and tolerations.
 
 Adjust nodeSelector labels and tolerations to match your GPU nodes. Run `oc get nodes --show-labels | grep gpu` to find the right label.
 
-**Important:** The HardwareProfile must be in the **same namespace as the LLMInferenceService** (e.g., `rhoai-playground`), not in `redhat-ods-applications`. The mutating webhook looks up the profile in the model's namespace.
+The HardwareProfile lives in `redhat-ods-applications` (alongside the default profiles). The LLMInferenceService references it via two annotations: `opendatahub.io/hardware-profile-name` and `opendatahub.io/hardware-profile-namespace`. Without the namespace annotation, the webhook looks in the model's namespace and fails.
 
 ```bash
 oc apply -f - <<'EOF'
@@ -561,7 +561,7 @@ metadata:
     opendatahub.io/disabled: "false"
     opendatahub.io/display-name: "NVIDIA GPU"
   name: nvidia-gpu
-  namespace: rhoai-playground
+  namespace: redhat-ods-applications
 spec:
   identifiers:
   - defaultCount: "4"
@@ -597,24 +597,25 @@ EOF
 ### 5.2 — Verify HardwareProfile exists
 
 ```bash
-oc get hardwareprofile -n rhoai-playground
+oc get hardwareprofile -n redhat-ods-applications
 ```
 
-**Expected:** `nvidia-gpu` appears in the list.
+**Expected:** `nvidia-gpu` appears alongside `default-profile` and `gpu-profile`.
 
 ### 5.3 — How LLMInferenceService references a HardwareProfile
 
-The `qwen3-8b-inferenceservice.yaml` in this repo already includes the annotation:
+The `qwen3-8b-inferenceservice.yaml` in this repo already includes both annotations:
 
 ```yaml
 metadata:
   annotations:
     opendatahub.io/hardware-profile-name: nvidia-gpu
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
 ```
 
 When applied, the RHOAI mutating webhook injects the HardwareProfile's resources, nodeSelector, and tolerations into the pod template. You can still override individual fields in `spec.template.containers[].resources` — the webhook merges, it doesn't replace if inline resources are present.
 
-**Important:** Create the HardwareProfile (step 5.1) BEFORE applying the LLMInferenceService, or the webhook won't find the profile and the pod gets no injection. If you already applied the model in Phase 3 without the profile, re-apply the InferenceService after creating the profile:
+**Important:** Create the HardwareProfile (step 5.1) BEFORE applying the LLMInferenceService. The webhook's `failurePolicy` is `Fail` — if the profile doesn't exist, the admission is **denied** (not silently skipped). If you already applied the model in Phase 3 without the profile, re-apply the InferenceService after creating the profile:
 
 ```bash
 oc apply -f argo-apps/rhoai-playground/qwen3-8b-inferenceservice.yaml
