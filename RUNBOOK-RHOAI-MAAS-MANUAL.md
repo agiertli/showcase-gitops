@@ -206,11 +206,19 @@ oc get datasciencecluster default-dsc -o jsonpath='{.status.phase}'
 
 **Expected:** `Ready` (may take 5-10 minutes as KServe/Istio/Serverless are deployed).
 
-If stuck, check conditions:
+If stuck at `NotReady`, check conditions:
 
 ```bash
 oc get datasciencecluster default-dsc -o jsonpath='{range .status.conditions[*]}{.type}: {.status} - {.message}{"\n"}{end}'
 ```
+
+**KServe dependency on LeaderWorkerSet:** KServe requires the LeaderWorkerSet CRD. If the DSC stays `NotReady` because of KServe, check if there's a pending LeaderWorkerSet InstallPlan:
+
+```bash
+oc get installplan -A | grep -i leader
+```
+
+If found, approve it. KServe won't report Ready until LeaderWorkerSet is installed, even if you're not using multi-node serving.
 
 ### 2.5 — Verify the data-science-gateway exists
 
@@ -654,17 +662,21 @@ oc apply -f argo-apps/rhoai-maas/rhcl-operatorgroup.yaml
 oc apply -f argo-apps/rhoai-maas/rhcl-subscription.yaml
 ```
 
-**Note:** The subscription uses `installPlanApproval: Manual`. You must approve the InstallPlan.
+**Note:** The subscription uses `installPlanApproval: Manual` and includes `spec.config.resources` to prevent Kuadrant controller OOM (default limits are too low).
 
-### 6.3 — Approve the InstallPlan
+### 6.3 — Approve ALL InstallPlans (RHCL + dependencies)
+
+RHCL has OLM-level dependencies on **Limitador** and **Authorino** operators. OLM creates separate InstallPlans for each. You must approve all of them — RHCL CSV won't reach `Succeeded` until its dependencies are installed.
 
 ```bash
-# Find the pending InstallPlan
+# List all pending InstallPlans
 oc get installplan -n rhcl-operator
 
-# Approve it (replace INSTALLPLAN_NAME with the actual name)
+# Approve each one (repeat for every pending InstallPlan)
 oc patch installplan <INSTALLPLAN_NAME> -n rhcl-operator --type merge -p '{"spec":{"approved":true}}'
 ```
+
+Expect to see InstallPlans for: RHCL, Limitador operator, and Authorino operator.
 
 ### 6.4 — Wait for CSV to succeed
 
@@ -672,7 +684,7 @@ oc patch installplan <INSTALLPLAN_NAME> -n rhcl-operator --type merge -p '{"spec
 oc get csv -n rhcl-operator -w
 ```
 
-**Expected:** RHCL operator CSV reaches `Succeeded`.
+**Expected:** All CSVs (RHCL, Limitador, Authorino) reach `Succeeded`.
 
 ### 6.5 — Verify Kuadrant CRD exists
 
