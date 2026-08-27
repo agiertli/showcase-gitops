@@ -278,6 +278,8 @@ oc apply -f argo-apps/rhoai-playground/qwen3-27b-inferenceservice.yaml
 
 **Hardware Profile:** The manifest includes `opendatahub.io/hardware-profile-name: nvidia-gpu` annotation. If you created the HardwareProfile in Phase 5 first, the mutating webhook injects resources/nodeSelector/tolerations from the profile. If Phase 5 hasn't been done yet, the inline `resources` block in the manifest still works — the pod just won't get nodeSelector/tolerations from the profile. You can re-apply the InferenceService after creating the profile to pick up the injection.
 
+**Visibility:** The label `networking.kserve.io/visibility: exposed` tells KServe to create an OpenShift Route for the model, making it accessible outside the cluster. Without this label, the model is only reachable via cluster-internal Services.
+
 ### 3.3 — Wait for the model to be Ready
 
 This is the longest wait — the model image (OCI modelcar) must download and vLLM must load the weights into GPU memory.

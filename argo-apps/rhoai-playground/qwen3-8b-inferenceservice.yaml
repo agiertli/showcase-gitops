@@ -6,6 +6,7 @@ metadata:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     opendatahub.io/hardware-profile-name: nvidia-gpu
   labels:
+    networking.kserve.io/visibility: exposed
     opendatahub.io/dashboard: "true"
     opendatahub.io/genai-asset: "true"
   name: qwen3-8b
