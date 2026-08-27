@@ -760,15 +760,53 @@ oc get secret maas-db-config -n redhat-ods-applications
 
 **Expected:** Secret exists.
 
-### 7.8 — Patch DSC to enable Models-as-a-Service
+### 7.8 — Enable MaaS in the Dashboard config
+
+The operator won't deploy `maas-api` until the dashboard is configured for MaaS. This is a separate config from the DSC patch — both are required.
+
+```bash
+oc apply --server-side --force-conflicts -f - <<'EOF'
+apiVersion: opendatahub.io/v1alpha
+kind: OdhDashboardConfig
+metadata:
+  name: odh-dashboard-config
+  namespace: redhat-ods-applications
+spec:
+  dashboardConfig:
+    modelAsService: true
+    maasAuthPolicies: true
+EOF
+```
+
+**Verify:**
+
+```bash
+oc get odhdashboardconfig odh-dashboard-config -n redhat-ods-applications -o jsonpath='{.spec.dashboardConfig.modelAsService}'
+```
+
+**Expected:** `true`
+
+### 7.9 — Patch DSC to enable Models-as-a-Service
 
 This tells RHOAI to deploy the maas-controller, maas-api, and create the `models-as-a-service` namespace.
 
+Do NOT use `argo-apps/rhoai-maas/dsc-maas-patch.yaml` directly — it includes `llamastackoperator: Managed` which you may not need. Apply only the MaaS component:
+
 ```bash
-oc apply --server-side --force-conflicts -f argo-apps/rhoai-maas/dsc-maas-patch.yaml
+oc apply --server-side --force-conflicts -f - <<'EOF'
+apiVersion: datasciencecluster.opendatahub.io/v2
+kind: DataScienceCluster
+metadata:
+  name: default-dsc
+spec:
+  components:
+    kserve:
+      modelsAsService:
+        managementState: Managed
+EOF
 ```
 
-### 7.9 — Verify MaaS components are deploying
+### 7.10 — Verify MaaS components are deploying
 
 This takes 2-5 minutes. The operator deploys several components.
 
