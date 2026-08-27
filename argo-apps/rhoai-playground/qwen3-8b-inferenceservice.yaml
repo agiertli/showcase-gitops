@@ -4,6 +4,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "2"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+    opendatahub.io/hardware-profile-name: nvidia-gpu
   labels:
     opendatahub.io/dashboard: "true"
     opendatahub.io/genai-asset: "true"

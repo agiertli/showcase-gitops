@@ -276,6 +276,8 @@ oc apply -f argo-apps/rhoai-playground/qwen3-27b-inferenceservice.yaml
 
 **Note:** The LLMInferenceService manifest includes `spec.router.gateway.refs` pointing to `maas-default-gateway` which doesn't exist yet (MaaS is installed in Phases 6-9). This is fine — the model deploys and serves via KServe regardless. The `llmisvc-controller-manager` will log a warning about the missing gateway and skip HTTPRoute creation. Once MaaS is installed and the gateway exists, the controller restart in Phase 10.1 will re-reconcile and create the HTTPRoute.
 
+**Hardware Profile:** The manifest includes `opendatahub.io/hardware-profile-name: nvidia-gpu` annotation. If you created the HardwareProfile in Phase 5 first, the mutating webhook injects resources/nodeSelector/tolerations from the profile. If Phase 5 hasn't been done yet, the inline `resources` block in the manifest still works — the pod just won't get nodeSelector/tolerations from the profile. You can re-apply the InferenceService after creating the profile to pick up the injection.
+
 ### 3.3 — Wait for the model to be Ready
 
 This is the longest wait — the model image (OCI modelcar) must download and vLLM must load the weights into GPU memory.
@@ -539,54 +541,80 @@ Open the RHOAI dashboard -> GenAI Studio -> Playground. You should see the `qwen
 
 ## Phase 5: Hardware Profiles
 
-Hardware Profiles let users see GPU configurations in the RHOAI dashboard when deploying models.
+Hardware Profiles define GPU resource defaults, node selectors, and tolerations. When referenced from a LLMInferenceService via annotation, a mutating webhook (`hardwareprofile-llmisvc-injector`) automatically injects the resources, nodeSelector, and tolerations into the pod template — so you don't need to hardcode them in every InferenceService YAML.
 
 ### 5.1 — Create a HardwareProfile
 
-Adjust GPU count and memory to match your hardware:
+Adjust nodeSelector labels and tolerations to match your GPU nodes. Run `oc get nodes --show-labels | grep gpu` to find the right label.
 
 ```bash
 oc apply -f - <<'EOF'
-apiVersion: dashboard.opendatahub.io/v1alpha1
+apiVersion: infrastructure.opendatahub.io/v1
 kind: HardwareProfile
 metadata:
-  name: gpu-l4-24gb
+  annotations:
+    opendatahub.io/dashboard-feature-visibility: '[]'
+    opendatahub.io/disabled: "false"
+    opendatahub.io/display-name: "NVIDIA GPU"
+  name: nvidia-gpu
   namespace: redhat-ods-applications
-  labels:
-    opendatahub.io/dashboard: "true"
 spec:
-  displayName: "NVIDIA L4 (24GB)"
-  description: "1x NVIDIA L4 GPU with 24GB VRAM"
-  enabled: true
-  nodeSelectors:
-    nvidia.com/gpu.present: "true"
-  tolerations:
-    - key: nvidia.com/gpu
-      operator: Exists
-      effect: NoSchedule
-  resources:
-    - resourceType: cpu
-      default: 4
-      minCount: 1
-      maxCount: 8
-    - resourceType: memory
-      default: 16Gi
-      minCount: 8Gi
-      maxCount: 32Gi
-    - resourceType: nvidia.com/gpu
-      default: 1
-      minCount: 1
-      maxCount: 1
+  identifiers:
+  - defaultCount: "4"
+    displayName: CPU
+    identifier: cpu
+    maxCount: "8"
+    minCount: 1
+    resourceType: CPU
+  - defaultCount: 16Gi
+    displayName: Memory
+    identifier: memory
+    maxCount: 32Gi
+    minCount: 8Gi
+    resourceType: Memory
+  - defaultCount: 1
+    displayName: GPU
+    identifier: nvidia.com/gpu
+    maxCount: 4
+    minCount: 1
+    resourceType: Accelerator
+  scheduling:
+    type: Node
+    node:
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
 EOF
 ```
 
-### 5.2 — Verify HardwareProfile appears in dashboard
+### 5.2 — Verify HardwareProfile exists
 
 ```bash
 oc get hardwareprofile -n redhat-ods-applications
 ```
 
-**Expected:** HardwareProfile exists. It should be visible in the RHOAI dashboard when deploying models or creating workbenches.
+**Expected:** `nvidia-gpu` appears in the list alongside any default profiles.
+
+### 5.3 — How LLMInferenceService references a HardwareProfile
+
+The `qwen3-8b-inferenceservice.yaml` in this repo already includes the annotation:
+
+```yaml
+metadata:
+  annotations:
+    opendatahub.io/hardware-profile-name: nvidia-gpu
+```
+
+When applied, the RHOAI mutating webhook injects the HardwareProfile's resources, nodeSelector, and tolerations into the pod template. You can still override individual fields in `spec.template.containers[].resources` — the webhook merges, it doesn't replace if inline resources are present.
+
+**Important:** Create the HardwareProfile (step 5.1) BEFORE applying the LLMInferenceService, or the webhook won't find the profile and the pod gets no injection. If you already applied the model in Phase 3 without the profile, re-apply the InferenceService after creating the profile:
+
+```bash
+oc apply -f argo-apps/rhoai-playground/qwen3-8b-inferenceservice.yaml
+```
 
 ---
 
