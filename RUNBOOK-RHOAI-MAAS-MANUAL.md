@@ -873,6 +873,8 @@ oc get secret maas-gateway-tls -n openshift-ingress
 
 The Gateway TLS `certificateRefs` references `cert-manager-ingress-cert`. If your cluster does NOT have cert-manager with a wildcard cert, use `maas-gateway-tls` (the service-ca cert from step 8.1) instead.
 
+**IMPORTANT:** The `infrastructure.parametersRef` pointing to `data-science-gateway-config` ConfigMap is required. Without it, the Gateway gets an IPAddress instead of a Hostname, which breaks Kuadrant AuthPolicy path resolution.
+
 **Option A — You have cert-manager with a wildcard cert** (the default in the manifest):
 
 ```bash
@@ -887,6 +889,11 @@ metadata:
   namespace: openshift-ingress
 spec:
   gatewayClassName: data-science-gateway-class
+  infrastructure:
+    parametersRef:
+      name: data-science-gateway-config
+      group: ""
+      kind: ConfigMap
   listeners:
     - name: https
       port: 443
@@ -903,6 +910,16 @@ EOF
 
 **Option B — No cert-manager; use service-ca cert instead:**
 
+If the cluster doesn't have cert-manager, copy the service-ca cert to the expected name (the Gateway controller reconciles `certificateRefs` back to `cert-manager-ingress-cert`):
+
+```bash
+oc get secret maas-gateway-tls -n openshift-ingress -o json | \
+  jq '.metadata.name = "cert-manager-ingress-cert" | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.ownerReferences)' | \
+  oc apply -f -
+```
+
+Then apply the same Gateway as Option A (with `cert-manager-ingress-cert`). The cert will be service-ca signed (not publicly trusted), so use `curl -k` for testing.
+
 ```bash
 oc apply -f - <<EOF
 apiVersion: gateway.networking.k8s.io/v1
@@ -915,6 +932,11 @@ metadata:
   namespace: openshift-ingress
 spec:
   gatewayClassName: data-science-gateway-class
+  infrastructure:
+    parametersRef:
+      name: data-science-gateway-config
+      group: ""
+      kind: ConfigMap
   listeners:
     - name: https
       port: 443
@@ -925,7 +947,7 @@ spec:
       tls:
         mode: Terminate
         certificateRefs:
-          - name: maas-gateway-tls
+          - name: cert-manager-ingress-cert
 EOF
 ```
 
