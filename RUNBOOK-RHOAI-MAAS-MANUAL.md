@@ -871,7 +871,7 @@ oc get secret maas-gateway-tls -n openshift-ingress
 
 ### 8.3 — Deploy the MaaS Gateway
 
-The Gateway TLS `certificateRefs` references `cert-manager-ingress-cert`. If your cluster does NOT have cert-manager with a wildcard cert, use `maas-gateway-tls` (the service-ca cert from step 7.1) instead.
+The Gateway TLS `certificateRefs` references `cert-manager-ingress-cert`. If your cluster does NOT have cert-manager with a wildcard cert, use `maas-gateway-tls` (the service-ca cert from step 8.1) instead.
 
 **Option A — You have cert-manager with a wildcard cert** (the default in the manifest):
 
@@ -937,7 +937,7 @@ oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .st
 
 **Expected:** `Accepted: True` and `Programmed: True`.
 
-**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 8.5 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
+**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 8.6 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
 
 ### 8.5 — Verify maas-api is now running
 
@@ -998,7 +998,7 @@ oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
 
 Open the RHOAI dashboard in a browser. If you get 401 errors, the WASM filter fix didn't apply correctly — re-check the EnvoyFilter.
 
-### 8.9 — Bootstrap Authorino TLS
+### 8.10 — Bootstrap Authorino TLS
 
 Authorino needs TLS certs to communicate with the maas-api. Three patches in sequence:
 
@@ -1341,7 +1341,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 ### Dashboard returns 401 after Kuadrant install
 
-Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 8.7:
+Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 8.8:
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
@@ -1383,7 +1383,7 @@ If it reports a missing PostgreSQL connection, verify the `maas-db-config` Secre
 
 ### Authorino not authenticating (TLS errors in logs)
 
-Check all three TLS pieces from Phase 8.9:
+Check all three TLS pieces from Phase 8.10:
 
 ```bash
 oc get secret authorino-server-cert -n kuadrant-system   # must exist
@@ -1427,11 +1427,11 @@ PostgreSQL + DB Secret (Phase 7.4-7.6)
 DSC MaaS patch (Phase 7.8) --> maas-controller, maas-api, models-as-a-service namespace
   |
   v
-Gateway + Route + TLS (Phase 8.1-8.6) --> maas-default-gateway
+Gateway + Route + TLS (Phase 8.1-8.7) --> maas-default-gateway
   |
-WASM filter fix (Phase 8.7) --> prevents dashboard 401
+WASM filter fix (Phase 8.8) --> prevents dashboard 401
   |
-Authorino TLS (Phase 8.9) --> API key auth chain
+Authorino TLS (Phase 8.10) --> API key auth chain
   |
   v
 MaaSModelRef (Phase 9.2) --> model visible in MaaS catalog
