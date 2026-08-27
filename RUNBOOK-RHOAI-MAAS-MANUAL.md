@@ -180,7 +180,7 @@ KServe deploys this gateway — it's a prerequisite for MaaS later.
 oc get gateway data-science-gateway -n openshift-ingress
 ```
 
-**Expected:** Gateway exists. If not, wait for DSC to finish reconciling.
+**Expected:** Gateway exists. On bare-metal, the Gateway's LoadBalancer IP will show `Pending` — that's normal, OpenShift Routes handle external access instead. If the Gateway resource itself doesn't exist, wait for DSC to finish reconciling.
 
 ### 2.4 — Patch the OdhDashboardConfig (Model Catalog + GenAI Studio)
 
@@ -580,6 +580,8 @@ oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .st
 ```
 
 **Expected:** `Accepted: True` and `Programmed: True`.
+
+**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 7.5 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
 
 ### 7.5 — Create the MaaS Route (stable DNS)
 
