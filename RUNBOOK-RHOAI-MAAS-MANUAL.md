@@ -806,9 +806,9 @@ spec:
 EOF
 ```
 
-### 7.10 — Verify MaaS components are deploying
+### 7.10 — Verify MaaS controller is deploying
 
-This takes 2-5 minutes. The operator deploys several components.
+This takes 2-5 minutes. The operator deploys the controller and creates the namespace.
 
 ```bash
 # Wait for the models-as-a-service namespace to be created
@@ -822,11 +822,11 @@ oc get datasciencecluster default-dsc -o jsonpath='{range .status.conditions[*]}
 ```
 
 ```bash
-# Verify maas-api and maas-controller are running
+# Verify maas-controller is running
 oc get pods -n redhat-ods-applications -l app.kubernetes.io/part-of=models-as-a-service
 ```
 
-**Expected:** `maas-api` and `maas-controller` pods are Running.
+**Expected:** `maas-controller` pod is Running. You will NOT see `maas-api` yet — it is created by the maas-controller only after the `maas-default-gateway` Gateway exists (Phase 8.3).
 
 ```bash
 # Verify the llmisvc-controller is running
@@ -937,9 +937,23 @@ oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .st
 
 **Expected:** `Accepted: True` and `Programmed: True`.
 
-**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 7.5 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
+**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 8.5 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
 
-### 8.5 — Create the MaaS Route (stable DNS)
+### 8.5 — Verify maas-api is now running
+
+The maas-controller creates the `maas-api` deployment once it detects the `maas-default-gateway` Gateway. This may take 1-2 minutes after the Gateway is created.
+
+```bash
+oc get pods -n redhat-ods-applications -l app.kubernetes.io/part-of=models-as-a-service
+```
+
+**Expected:** Both `maas-controller` and `maas-api` pods are Running. If `maas-api` doesn't appear after 2 minutes, check the controller logs:
+
+```bash
+oc logs deployment/maas-controller -n redhat-ods-applications --tail=50
+```
+
+### 8.6 — Create the MaaS Route (stable DNS)
 
 Replace `YOUR_CLUSTER_DOMAIN` with your actual cluster domain.
 
@@ -964,7 +978,7 @@ spec:
 EOF
 ```
 
-### 8.6 — Verify the Route is Admitted
+### 8.7 — Verify the Route is Admitted
 
 ```bash
 oc get route maas-default-gateway -n openshift-ingress
@@ -972,7 +986,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 **Expected:** Route shows `Admitted` with the host `maas.YOUR_CLUSTER_DOMAIN`.
 
-### 8.7 — Apply the Kuadrant WASM filter fix (CRITICAL)
+### 8.8 — Apply the Kuadrant WASM filter fix (CRITICAL)
 
 Without this, Kuadrant's WASM filters leak to the data-science-gateway and break the RHOAI dashboard with 401 errors.
 
@@ -980,7 +994,7 @@ Without this, Kuadrant's WASM filters leak to the data-science-gateway and break
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
 ```
 
-### 8.8 — Verify dashboard still works
+### 8.9 — Verify dashboard still works
 
 Open the RHOAI dashboard in a browser. If you get 401 errors, the WASM filter fix didn't apply correctly — re-check the EnvoyFilter.
 
