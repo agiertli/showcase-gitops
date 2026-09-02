@@ -7,6 +7,7 @@ resources:
 - kuadrant-namespace.yaml
 - kuadrant.yaml
 - maas-api-resource-override.yaml
+- payload-processing-resource-override.yaml
 - maas-auth-policy.yaml
 - maas-db-config.yaml
 - maas-gateway.yaml
@@ -44,6 +45,5 @@ replacements:
   targets:
   - select:
       kind: MaaSModelRef
-      name: muse-glimmer
     fieldPaths:
     - spec.endpointOverride

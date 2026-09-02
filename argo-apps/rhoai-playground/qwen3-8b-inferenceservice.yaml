@@ -21,10 +21,7 @@ spec:
       refs:
         - name: maas-default-gateway
           namespace: openshift-ingress
-    route:
-      http:
-        spec:
-          useDefaultGateways: "All"
+    route: {}
   template:
     containers:
       - name: main

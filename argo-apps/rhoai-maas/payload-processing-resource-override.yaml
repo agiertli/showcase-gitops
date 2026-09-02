@@ -1,0 +1,49 @@
+# Workaround for payload-processing OOM (RHOAI 3.4)
+#
+# The maas-controller hardcodes payload-processing memory limits at 256Mi
+# (see deployment/base/payload-processing/instance/deployment.yaml in
+# opendatahub-io/models-as-a-service). The Tenant CRD only exposes
+# replicas and autoscaling, not resource limits.
+#
+# The annotation opendatahub.io/managed=false tells the maas-controller
+# to skip this resource during reconciliation (checked by
+# isLiveResourceUnmanaged in apply.go before SSA+ForceOwnership).
+#
+# RISK: The maas-controller will no longer update this Deployment on
+# RHOAI upgrades (image bumps, env var changes). After upgrading RHOAI,
+# review the operator's desired state and update this manifest or remove
+# the annotation once upstream adds resource override support.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payload-processing
+  namespace: openshift-ingress
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/component: payload-processing
+    app.kubernetes.io/name: payload-processing
+    app.kubernetes.io/part-of: models-as-a-service
+spec:
+  selector:
+    matchLabels:
+      app: payload-processing
+  template:
+    metadata:
+      labels:
+        app: payload-processing
+        app.kubernetes.io/component: payload-processing
+        app.kubernetes.io/name: payload-processing
+        app.kubernetes.io/part-of: models-as-a-service
+    spec:
+      containers:
+        - name: payload-processing
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi

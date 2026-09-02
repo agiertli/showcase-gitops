@@ -69,10 +69,10 @@ Verify: `oc get dsc,dsci` shows resources.
 #### Phase 2: Model Serving (if selected)
 1. Create namespace: `oc apply -f argo-apps/rhoai-playground/namespace.yaml --server-side`
 2. For muse-glimmer only: also apply `muse-glimmer-namespace.yaml`, `muse-glimmer-storage.yaml`, `muse-glimmer-serving-runtime.yaml`
-3. Apply InferenceService: `oc apply -f argo-apps/rhoai-playground/<model>-inferenceservice.yaml --server-side --force-conflicts`
-4. Generate and apply LlamaStack config (see "LlamaStack Config Generation" below)
-5. Apply LlamaStack distribution: `oc apply -f argo-apps/rhoai-playground/llama-stack-distribution.yaml --server-side --force-conflicts`
-6. Verify: `oc get inferenceservice -A` shows the model, `oc get pods -n <model-ns>` shows predictor pod starting
+3. Ensure a `nvidia-gpu` HardwareProfile exists in `redhat-ods-applications` (required for LLMInferenceService in 3.5)
+4. Apply InferenceService: `oc apply -f argo-apps/rhoai-playground/<model>-inferenceservice.yaml --server-side --force-conflicts`
+5. Verify: `oc get llminferenceservice -A` shows the model, `oc get pods -n <model-ns>` shows predictor pod starting
+6. OGX Playground is deployed automatically by Phase 4 (MaaS) — do not create LlamaStack distribution manually
 
 #### Phase 3: Observability (if selected) — ORDER MATTERS
 This is the trickiest phase. Multiple RHOAI 3.4.3 + COO 1.5.1 bugs require workarounds.
@@ -155,25 +155,25 @@ If `False`: check status message, likely tempo-datasource issue. Re-apply fixes 
 When Ready, verify PrometheusRules were created: `oc get prometheusrules -n redhat-ods-monitoring` should show ~13 rules.
 
 #### Phase 4: MaaS (if selected)
-1. Update `argo-apps/rhoai-maas/cluster-config.yaml` with cluster domain
+1. Update `argo-apps/rhoai-maas/cluster-config.yaml`: set `MAAS_HOST` to `maas.apps.<cluster-domain>` and `MAAS_ENDPOINT_OVERRIDE` to `https://maas.apps.<cluster-domain>` (base URL only, no model path)
 2. Install RHCL operator (namespace, operatorgroup, subscription), approve InstallPlan
 3. Wait for RHCL CSV, wait for `kuadrants.kuadrant.io` CRD
 4. Apply kustomize: `oc kustomize argo-apps/rhoai-maas | oc apply --server-side --force-conflicts -f -`
 5. Patch subscription and auth policy for the deployed model (see "MaaS model-specific resources" above)
-6. Verify: `oc get maassubscription,maasauthpolicy -n models-as-a-service`
+6. Enable OdhDashboardConfig: `oc patch odhdashboardconfig odh-dashboard-config -n redhat-ods-applications --type merge -p '{"spec":{"dashboardConfig":{"modelAsService":true,"vLLMDeploymentOnMaaS":true}}}'`
+7. Wait for OGX pods (`lsd-genai-playground`, `genai-pgvector`) to be Running in model namespace
+8. Patch `llama-stack-config` ConfigMap: change publisher-style paths to namespace-based paths (see "OGX Playground Path Bug")
+9. Create MaaS API key and set `VLLM_API_TOKEN_1` / `VLLM_API_TOKEN_2` env vars on OGXServer to the key value
+10. Verify: `oc get maassubscription,maasauthpolicy -n models-as-a-service`, test Playground UI
 
 #### Phase 5: MLflow (if selected)
 ```bash
 oc apply -f argo-apps/rhoai-mlflow/ --server-side --force-conflicts
 ```
 
-### LlamaStack Config Generation
+### OGX Config (Playground)
 
-The `llama-stack-config.yaml` in the repo defaults to muse-glimmer. When deploying a different model, generate the ConfigMap dynamically. Key fields to update:
-- `providers.inference[1].provider_id`: `vllm-<model-name>`
-- `providers.inference[1].config.base_url`: `https://<model>-kserve-workload-svc.<namespace>.svc.cluster.local:8000/v1` — **MUST be `https://`** (KServe injects TLS)
-- `registered_resources.models[1].provider_id`: `vllm-<model-name>`
-- `registered_resources.models[1].model_id`: `<model-name>`
+OGX auto-generates the `llama-stack-config` ConfigMap and `lsd-genai-playground` deployment when `ogx: Managed` is set in the DSC. **Do not create these manually.** After OGX deploys, patch the ConfigMap to fix the publisher-path bug (see "OGX Playground Path Bug" above).
 
 Model namespace mapping:
 - `muse-glimmer` → namespace `muse-glimmer`
@@ -191,8 +191,22 @@ Model namespace mapping:
 
 ## MaaS (Models-as-a-Service)
 - **TLS**: The Gateway must use the `cert-manager-ingress-cert` secret (ZeroSSL wildcard), NOT the internal `maas-gateway-tls` (service-serving CA, untrusted externally)
-- **Routing**: MaaS uses path-based routing — the base URL is `/muse-glimmer/muse-glimmer/v1`, NOT just `/v1`. Model name in request body is `muse-glimmer` (the LLMInferenceService name), NOT the HuggingFace ID
+- **Routing**: MaaS uses path-based routing — the base URL is `/<namespace>/<model>/v1`, NOT just `/v1`. Model name in request body is `qwen3-8b` (the LLMInferenceService name), NOT the HuggingFace ID
 - **Direct route**: `muse-glimmer-direct` Route in `muse-glimmer` namespace bypasses MaaS for direct vLLM access (passthrough TLS, no API key needed)
+
+### MaaS — RHOAI 3.5 Breaking Changes
+- **DSC path changed**: `kserve.modelsAsService` is deprecated and rejected. Must use `aigateway.modelsAsAService` (note extra "A") with `aigateway.managementState: Managed`
+- **OGX replaces LlamaStack**: Set `llamastackoperator: Removed` BEFORE enabling `ogx: Managed`. OGX is required for MaaS dashboard UI (API keys, subscriptions, auth policies). Without OGX the model shows in "AI asset endpoints" but MaaS management sections are missing
+- **HardwareProfile mandatory**: LLMInferenceService references a HardwareProfile via `opendatahub.io/hardware-profile-name` annotation. Deployment fails if the profile doesn't exist. Create a `nvidia-gpu` HardwareProfile in `redhat-ods-applications` if needed
+- **Infrastructure namespace**: MaaS infra goes to `redhat-ai-gateway-infra` (auto-created), not `redhat-ods-applications`. The `maas-db-config` secret must be in `redhat-ai-gateway-infra`
+- **`maasAuthPolicies` dashboard flag deprecated**: Setting it causes a validation error in 3.5. Only set `vLLMDeploymentOnMaaS: true` and `observabilityDashboard: true`
+- **MaaSTenantConfig auto-created**: `default-tenant` in `models-as-a-service` is auto-provisioned. No manual Tenant CR needed
+
+### MaaS — External API Endpoint Fix
+The Gateway gets an AWS ELB hostname by default. The dashboard shows this ugly URL as the external endpoint. Fix with `endpointOverride` on MaaSModelRef — set to the Route's base URL (e.g. `https://maas.apps.ocp.example.com`). All MaaSModelRef manifests in this repo use kustomize replacement from `cluster-config.yaml` `MAAS_ENDPOINT_OVERRIDE`. **Do NOT set `hostname` on the Gateway listener** — it breaks internal connectivity (Istio rejects svc.cluster.local SNI)
+
+### MaaS — OGX Playground Path Bug (RHOAI 3.5)
+The OGX-deployed LlamaStack distribution (`lsd-genai-playground`) routes inference through the MaaS gateway. The auto-generated config uses **publisher-style paths** (`/publishers/<ns>/models/<model>/v1`). These paths **DO NOT work with MaaS subscription matching** — the gateway extracts the wrong model name and rejects with "no matching subscription found for user". Fix: patch the `llama-stack-config` ConfigMap to use **namespace-based paths** (`/<ns>/<model>/v1`). The ConfigMap has `ogx.io/watch: "true"` label so the operator auto-restarts the pod on changes. Also set `VLLM_API_TOKEN_1` and `VLLM_API_TOKEN_2` env vars on the OGXServer to a valid MaaS API key (defaults to `fake`)
 
 ## Model Serving — GPU Requirements
 | Model | Parameters | Quantization | Min VRAM | AWS Instance | GPU |

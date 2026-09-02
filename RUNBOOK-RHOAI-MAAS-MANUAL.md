@@ -959,7 +959,7 @@ oc get gateway maas-default-gateway -n openshift-ingress -o jsonpath='{range .st
 
 **Expected:** `Accepted: True` and `Programmed: True`.
 
-**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 8.6 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
+**Bare-metal note:** On bare-metal clusters without MetalLB, the Gateway's LoadBalancer Service will stay `Pending` and `Programmed` may not become `True`. This is expected — the Route created in step 8.7 bypasses the LoadBalancer entirely and routes through OpenShift's built-in HAProxy router. As long as `Accepted: True`, you're fine. Ignore `Pending` external IP.
 
 ### 8.5 — Verify maas-api is now running
 
@@ -975,7 +975,66 @@ oc get pods -n redhat-ods-applications -l app.kubernetes.io/part-of=models-as-a-
 oc logs deployment/maas-controller -n redhat-ods-applications --tail=50
 ```
 
-### 8.6 — Create the MaaS Route (stable DNS)
+### 8.6 — Fix payload-processing OOM (if needed)
+
+The maas-controller deploys `payload-processing` pods in `openshift-ingress`. These sit in the Envoy request path as ext_proc filters for token counting (rate limiting, usage tracking). The default memory limit is 256Mi, which often causes OOM crashes.
+
+Check if payload-processing pods are crash-looping:
+
+```bash
+oc get pods -n openshift-ingress -l app.kubernetes.io/part-of=models-as-a-service
+```
+
+If you see OOMKilled or CrashLoopBackOff, apply the resource override:
+
+```bash
+oc apply --server-side --force-conflicts -f - <<EOF
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: payload-processing
+  namespace: openshift-ingress
+  annotations:
+    opendatahub.io/managed: "false"
+  labels:
+    app.kubernetes.io/component: payload-processing
+    app.kubernetes.io/name: payload-processing
+    app.kubernetes.io/part-of: models-as-a-service
+spec:
+  selector:
+    matchLabels:
+      app: payload-processing
+  template:
+    metadata:
+      labels:
+        app: payload-processing
+        app.kubernetes.io/component: payload-processing
+        app.kubernetes.io/name: payload-processing
+        app.kubernetes.io/part-of: models-as-a-service
+    spec:
+      containers:
+        - name: payload-processing
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+EOF
+```
+
+> **IMPORTANT:** The `opendatahub.io/managed: "false"` annotation tells the maas-controller to skip SSA reconciliation for this resource. After RHOAI upgrades, review and update this manifest or remove the annotation. You MUST use `--server-side --force-conflicts` because maas-controller owns the fields via SSA.
+
+Verify pods restart with new limits:
+
+```bash
+oc get pods -n openshift-ingress -l app=payload-processing -w
+```
+
+**Expected:** Pod(s) Running without OOM restarts.
+
+### 8.7 — Create the MaaS Route (stable DNS)
 
 The Route targets the Service `maas-default-gateway-data-science-gateway-class` — this is auto-created by the Gateway controller when the Gateway is accepted (step 8.4). Verify it exists before creating the Route:
 
@@ -1006,7 +1065,7 @@ spec:
 EOF
 ```
 
-### 8.7 — Verify the Route is Admitted
+### 8.8 — Verify the Route is Admitted
 
 ```bash
 oc get route maas-default-gateway -n openshift-ingress
@@ -1014,7 +1073,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 **Expected:** Route shows `Admitted` with the host `maas.YOUR_CLUSTER_DOMAIN`.
 
-### 8.8 — Apply the Kuadrant WASM filter fix (CRITICAL)
+### 8.9 — Apply the Kuadrant WASM filter fix (CRITICAL)
 
 Without this, Kuadrant's WASM filters leak to the data-science-gateway and break the RHOAI dashboard with 401 errors.
 
@@ -1022,11 +1081,11 @@ Without this, Kuadrant's WASM filters leak to the data-science-gateway and break
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
 ```
 
-### 8.9 — Verify dashboard still works
+### 8.10 — Verify dashboard still works
 
 Open the RHOAI dashboard in a browser. If you get 401 errors, the WASM filter fix didn't apply correctly — re-check the EnvoyFilter.
 
-### 8.10 — Bootstrap Authorino TLS
+### 8.11 — Bootstrap Authorino TLS
 
 Authorino needs TLS certs to communicate with the maas-api. Three patches in sequence:
 
@@ -1369,7 +1428,7 @@ oc get route maas-default-gateway -n openshift-ingress
 
 ### Dashboard returns 401 after Kuadrant install
 
-Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 8.8:
+Kuadrant WASM filters leaked to data-science-gateway. Apply the fix from Phase 8.9:
 
 ```bash
 oc apply -f argo-apps/rhoai-maas/remove-kuadrant-wasm-from-dsg.yaml
@@ -1411,7 +1470,7 @@ If it reports a missing PostgreSQL connection, verify the `maas-db-config` Secre
 
 ### Authorino not authenticating (TLS errors in logs)
 
-Check all three TLS pieces from Phase 8.10:
+Check all three TLS pieces from Phase 8.11:
 
 ```bash
 oc get secret authorino-server-cert -n kuadrant-system   # must exist
@@ -1455,11 +1514,11 @@ PostgreSQL + DB Secret (Phase 7.4-7.6)
 DSC MaaS patch (Phase 7.8) --> maas-controller, maas-api, models-as-a-service namespace
   |
   v
-Gateway + Route + TLS (Phase 8.1-8.7) --> maas-default-gateway
+Gateway + Route + TLS (Phase 8.1-8.8) --> maas-default-gateway
   |
-WASM filter fix (Phase 8.8) --> prevents dashboard 401
+WASM filter fix (Phase 8.9) --> prevents dashboard 401
   |
-Authorino TLS (Phase 8.10) --> API key auth chain
+Authorino TLS (Phase 8.11) --> API key auth chain
   |
   v
 MaaSModelRef (Phase 9.2) --> model visible in MaaS catalog
