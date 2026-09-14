@@ -9,6 +9,11 @@ spec:
   endpoints:
   - honorLabels: true
     interval: 30s
+    metricRelabelings:
+    - action: drop
+      regex: kserve_vllm:.*
+      sourceLabels:
+      - __name__
     port: prometheus
     scheme: https
     tlsConfig:

@@ -5,5 +5,5 @@ metadata:
   annotations:
     config.kubernetes.io/local-config: "true"
 data:
-  MAAS_HOST: maas.apps.ocp.CHANGEME.example.com
-  MAAS_ENDPOINT_OVERRIDE: https://maas.apps.ocp.CHANGEME.example.com
+  MAAS_HOST: maas.apps.ocp.xlwsd.sandbox1213.opentlc.com
+  MAAS_ENDPOINT_OVERRIDE: https://maas.apps.ocp.xlwsd.sandbox1213.opentlc.com
