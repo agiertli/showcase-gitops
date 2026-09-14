@@ -164,16 +164,24 @@ When Ready, verify PrometheusRules were created: `oc get prometheusrules -n redh
 7. Wait for OGX pods (`lsd-genai-playground`, `genai-pgvector`) to be Running in model namespace
 8. Patch `llama-stack-config` ConfigMap: change publisher-style paths to namespace-based paths (see "OGX Playground Path Bug")
 9. Create MaaS API key and set `VLLM_API_TOKEN_1` / `VLLM_API_TOKEN_2` env vars on OGXServer to the key value
-10. Verify: `oc get maassubscription,maasauthpolicy -n models-as-a-service`, test Playground UI
+10. Set Gateway listener hostname for maas-api: `oc patch gateway maas-default-gateway -n openshift-ingress --type json -p '[{"op":"add","path":"/spec/listeners/0/hostname","value":"maas.apps.<cluster-domain>"}]'`
+11. Verify: `oc get maassubscription,maasauthpolicy -n models-as-a-service`, test Playground UI, verify API keys page loads
 
 #### Phase 5: MLflow (if selected)
 ```bash
 oc apply -f argo-apps/rhoai-mlflow/ --server-side --force-conflicts
 ```
+Wait for `mlflow` pod (2/2 Running) in `redhat-ods-applications`. The `mlflow-ui` pod may log "no MLflow CR found" initially — it discovers the CR via polling (30s interval). First page load can take 60s+ while discovery completes. Subsequent loads are fast.
+
+Verify: `oc get pods -n redhat-ods-applications | grep mlflow` shows `mlflow` (2/2 Running), `mlflow-ui` (1/1 Running), `mlflow-operator-controller-manager` (1/1 Running). Dashboard URL: `https://rh-ai.apps.<cluster-domain>/mlflow/`
 
 ### OGX Config (Playground)
 
 OGX auto-generates the `llama-stack-config` ConfigMap and `lsd-genai-playground` deployment when `ogx: Managed` is set in the DSC. **Do not create these manually.** After OGX deploys, patch the ConfigMap to fix the publisher-path bug (see "OGX Playground Path Bug" above).
+
+- **OGXServer distribution**: Use `rh` (not `remote-vllm` or `starter`). `rh-dev` is a deprecated alias for `rh` and triggers a warning
+- **OCI registry auth**: OGX operator pulls image labels from `registry.redhat.io` to resolve the base config. If this fails (HTTP 401), provide a `baseConfig` ConfigMap directly pointing to a manually created `config.yaml`
+- **vLLM HTTPS**: The vLLM service uses `appProtocol: https` on port 8000. The OGX config must use `https://` endpoint with `tls.verify: false` in the vLLM provider config
 
 Model namespace mapping:
 - `muse-glimmer` → namespace `muse-glimmer`
@@ -203,7 +211,25 @@ Model namespace mapping:
 - **MaaSTenantConfig auto-created**: `default-tenant` in `models-as-a-service` is auto-provisioned. No manual Tenant CR needed
 
 ### MaaS — External API Endpoint Fix
-The Gateway gets an AWS ELB hostname by default. The dashboard shows this ugly URL as the external endpoint. Fix with `endpointOverride` on MaaSModelRef — set to the Route's base URL (e.g. `https://maas.apps.ocp.example.com`). All MaaSModelRef manifests in this repo use kustomize replacement from `cluster-config.yaml` `MAAS_ENDPOINT_OVERRIDE`. **Do NOT set `hostname` on the Gateway listener** — it breaks internal connectivity (Istio rejects svc.cluster.local SNI)
+The Gateway gets an AWS ELB hostname by default. The dashboard shows this ugly URL as the external endpoint. Fix with `endpointOverride` on MaaSModelRef — set to the Route's base URL (e.g. `https://maas.apps.ocp.example.com`). All MaaSModelRef manifests in this repo use kustomize replacement from `cluster-config.yaml` `MAAS_ENDPOINT_OVERRIDE`.
+
+### MaaS — Gateway Listener Hostname (REQUIRED for API Keys page)
+In OcpRoute mode, the Gateway `status.addresses` only contains the internal `.svc.cluster.local` hostname. The maas-api reads this to determine the external URL — without an external hostname, `/v1/tenants` fails with "Unable to determine external hostname from Gateway status" and the dashboard API keys page shows "maas-api is not available". **Fix**: set `hostname` on the MaaS Gateway listener:
+```bash
+oc patch gateway maas-default-gateway -n openshift-ingress --type json \
+  -p '[{"op":"add","path":"/spec/listeners/0/hostname","value":"maas.apps.<cluster-domain>"}]'
+```
+This does NOT break Authorino auth (the previous belief was wrong — the 403 was caused by a stale API key, not the hostname). Do NOT change `GatewayConfig.spec.ingressMode` to `LoadBalancer` — it causes the data-science-gateway pod to restart and poisons DNS caches with negative NXDOMAIN entries for the dashboard URL.
+
+### MaaS — API Key Lifecycle
+API keys are stored in the `maas-db` PostgreSQL database (in `redhat-ods-applications`) as SHA256 hashes. The raw key is only returned once at creation time. If the saved key doesn't match the database hash, the key validation endpoint returns `{valid: false, reason: "key not found"}` and ALL requests get 403 from Authorino. Fix: create a new key via the MaaS gateway using an OpenShift token:
+```bash
+TOKEN=$(oc whoami -t)
+curl -sk -X POST "https://maas.apps.<cluster-domain>/maas-api/v1/api-keys" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"name":"admin-key","description":"Admin API key","subscription":"demo-subscription"}'
+```
+Then update `VLLM_API_TOKEN_1` on the OGXServer with the new key value.
 
 ### MaaS — OGX Playground Path Bug (RHOAI 3.5)
 The OGX-deployed LlamaStack distribution (`lsd-genai-playground`) routes inference through the MaaS gateway. The auto-generated config uses **publisher-style paths** (`/publishers/<ns>/models/<model>/v1`). These paths **DO NOT work with MaaS subscription matching** — the gateway extracts the wrong model name and rejects with "no matching subscription found for user". Fix: patch the `llama-stack-config` ConfigMap to use **namespace-based paths** (`/<ns>/<model>/v1`). The ConfigMap has `ogx.io/watch: "true"` label so the operator auto-restarts the pod on changes. Also set `VLLM_API_TOKEN_1` and `VLLM_API_TOKEN_2` env vars on the OGXServer to a valid MaaS API key (defaults to `fake`)
@@ -242,11 +268,14 @@ These bugs are **deployment blockers**, not just dashboard tips. The repo includ
 ## Observability Dashboard (Tech Preview)
 - **OTel collector is operator-managed**: RHOAI operator reconciles any changes to the OTelCollector CR instantly — do NOT try to patch it. Workaround by creating parallel scrape paths
 - **DCGM GPU metrics**: The OTel collector DROPS `DCGM_FI_DEV_GPU_UTIL`. Fix: create a `monitoring.rhobs/v1` PodMonitor that scrapes the DCGM exporter directly (port 9400, `nvidia-gpu-operator` namespace)
-- **Namespace labeling**: OTel collector in `redhat-ods-monitoring` causes all re-exported metrics to get `namespace=redhat-ods-monitoring`. Fix: set `honorLabels: true` on the ServiceMonitor scraping the OTel Prometheus exporter — this preserves the original `namespace=muse-glimmer` label
+- **Namespace labeling / duplicate models**: OTel collector in `redhat-ods-monitoring` re-exports vLLM metrics with `namespace=redhat-ods-monitoring`, causing duplicate model entries in the dashboard. Root cause: the operator-managed `data-science-prometheus-monitor` ServiceMonitor scrapes port 8889 without `honorLabels: true`, AND the operator reconciles away any SSA patches adding it (even with custom field managers). Partial fix: the custom `otel-collector-prometheus-exporter` ServiceMonitor has `metricRelabelings` to drop `kserve_vllm:*` metrics, preventing our SM from creating a second copy. The operator-managed SM still produces one entry with `namespace=redhat-ods-monitoring` and `exported_namespace=rhoai-playground`. **This is a product limitation** — the model appears with "redhat-ods-monitoring" as project instead of the actual namespace. Full fix requires Red Hat to add `honorLabels: true` to the operator-managed ServiceMonitor
 - **Platform metrics**: MonitoringStack Prometheus has no kube/node metrics by default. Fix: create a ServiceMonitor with `/federate` path targeting `openshift-monitoring` Prometheus (needs `cluster-monitoring-view` ClusterRoleBinding)
 - **MonitoringStack API group**: MonitoringStack uses `monitoring.rhobs/v1` for its ServiceMonitors/PodMonitors. KServe-created monitors use `monitoring.coreos.com/v1` (platform Prometheus only). Don't confuse them
 - **Recording rules on counters**: Never use `label_replace` with the same metric name on counters — it creates new series with no history, zeroing `increase()` calculations. This is unfixable
 - **MaaS Usage/Observability tab (Tech Preview)**: Requires three things: (1) Kuadrant CR `spec.observability.enable: true`, (2) Tenant CR `spec.telemetry.enabled: true` with metric capture settings, (3) MaaSSubscription MUST have `tokenMetadata.costCenter` and `tokenMetadata.organizationId` set — without these, the WASM shim fails with `CelError::Resolve { NoSuchKey("costCenter") }` and Limitador receives no usage data. Limitador emits `authorized_hits`, `authorized_calls`, `limited_calls` with subscription/model/user labels. Dashboard uses Perses + Thanos Querier. See doc section 1.14
+
+## GatewayConfig — Do NOT Change ingressMode
+The `GatewayConfig` CR (`default-gateway`) controls how the data-science-gateway and MaaS gateway are exposed. On RHOAI 3.5 with `OcpRoute` mode, changing to `LoadBalancer` causes the data-science-gateway Envoy pod to restart AND the operator to temporarily remove/recreate the Route. This poisons DNS resolvers (Google DNS) with negative NXDOMAIN entries for `rh-ai.apps.<domain>` that can take minutes to clear. The user loses access to the entire RHOAI dashboard. **Never change `ingressMode`** — use the Gateway listener `hostname` field instead (see "MaaS — Gateway Listener Hostname" above).
 
 ## MLflow Tracing
 - **Application-side only**: MLflow tracing requires client-side instrumentation (`mlflow.openai.autolog()` or `mlflow.langchain.autolog()`). No server-side config needed — MLflow server 3.10+ supports tracing OOTB

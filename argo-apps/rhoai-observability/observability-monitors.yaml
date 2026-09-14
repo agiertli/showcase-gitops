@@ -36,6 +36,7 @@ spec:
       - '{__name__=~"container_memory_working_set_bytes",container!="",image!=""}'
       - '{__name__="node_namespace_pod_container:container_cpu_usage_seconds_total:sum_irate"}'
       - '{__name__="container_network_receive_bytes_total"}'
+      - '{__name__="accelerator_gpu_utilization"}'
     path: /federate
     port: web
     scheme: https
