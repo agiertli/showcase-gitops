@@ -6,4 +6,5 @@ metadata:
   labels:
     argocd.argoproj.io/managed-by: openshift-gitops
     opendatahub.io/dashboard: "true"
+    opendatahub.io/generated-namespace: "true"
   name: rhoai-playground
