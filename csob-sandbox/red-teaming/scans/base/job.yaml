@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scan
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: submit
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Submitting scan to EvalHub..."
+              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+              RESPONSE=$(curl -sk -w "\n%{http_code}" \
+                -X POST "https://evalhub.csob-sandbox.svc.cluster.local:8443/api/v1/evaluations/jobs" \
+                -H "Authorization: Bearer $TOKEN" \
+                -H "Content-Type: application/json" \
+                -H "X-Tenant: csob-sandbox" \
+                -H "X-User: admin" \
+                -d @/payload/payload.json)
+              HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+              BODY=$(echo "$RESPONSE" | head -n -1)
+              echo "HTTP $HTTP_CODE"
+              echo "$BODY"
+              if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+                echo "Scan submitted successfully."
+              else
+                echo "ERROR: Scan submission failed."
+                exit 1
+              fi
+          volumeMounts:
+            - name: payload
+              mountPath: /payload
+              readOnly: true
+      volumes:
+        - name: payload
+          configMap:
+            name: scan-payload

@@ -1,0 +1,13 @@
+{{- if .Values.postgres.pvc.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: evalhub-postgres-data
+  namespace: {{ include "evalhub-infra.namespace" . }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.postgres.pvc.size }}
+{{- end }}

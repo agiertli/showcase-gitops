@@ -1,0 +1,31 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: dspa
+  namespace: {{ include "evalhub-infra.namespace" . }}
+spec:
+  dspVersion: v2
+  apiServer:
+    deploy: true
+    enableSamplePipeline: false
+  database:
+    mariaDB:
+      deploy: true
+      pipelineDBName: mlpipeline
+      pvcSize: {{ .Values.dspa.mariadb.pvcSize }}
+  objectStorage:
+    externalStorage:
+      basePath: ""
+      bucket: {{ .Values.dspa.s3.bucket }}
+      host: "{{ include "evalhub-infra.s4Host" . }}:7480"
+      port: ""
+      region: {{ .Values.s4.credentials.region }}
+      s3CredentialsSecret:
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY
+        secretName: s4-credentials
+      scheme: http
+  persistenceAgent:
+    deploy: true
+  scheduledWorkflow:
+    deploy: true

@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pvc-model-storage-v1
+  namespace: redhat-ods-applications
+  annotations:
+    openshift.io/display-name: "PVC Model Storage - v1"
+    openshift.io/description: >-
+      Deploy models stored on a PersistentVolumeClaim.
+      URI format: pvc://<pvc-name>/<model-subdir>.
+      PVC must exist in the deployment namespace with model weights pre-downloaded.
+  labels:
+    opendatahub.io/connection-type: "true"
+    opendatahub.io/dashboard: "true"
+data:
+  category: '["URI"]'
+  modelServingCompatible: '["URI"]'
+  fields: |-
+    [
+      {
+        "type": "section",
+        "name": "Format: pvc://<pvc-name>/<model-subdir>  —  Example: pvc://gemma-4-12b-model/gemma-4-12B-it-FP8-Dynamic"
+      },
+      {
+        "type": "uri",
+        "name": "URI",
+        "envVar": "URI",
+        "required": true,
+        "properties": {}
+      }
+    ]

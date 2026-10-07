@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: evalhub-postgres
+  namespace: {{ include "evalhub-infra.namespace" . }}
+spec:
+  selector:
+    app: evalhub-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432

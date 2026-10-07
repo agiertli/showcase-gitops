@@ -282,6 +282,67 @@ The `GatewayConfig` CR (`default-gateway`) controls how the data-science-gateway
 - **Async flush**: Always call `mlflow.flush_trace_async_logging(terminate=True)` before script exit, plus a short `time.sleep(3)` — otherwise traces stay "in progress"
 - **Workspace**: Set `mlflow.set_workspace("muse-glimmer")` to route experiments to the correct namespace
 
+## EvalHub + MLflow Integration (CRITICAL — Scan Data Persistence)
+
+MLflow integration eliminates the need to scrape scan artifacts from ephemeral garak pods. Once configured, EvalHub automatically stores metrics, params, and raw scan data (hitlog, report, HTML) in MLflow as persistent artifacts.
+
+### Setup (3 steps, all required)
+
+**Step 1: Enable MLflow on the cluster**
+```bash
+oc apply -f argo-apps/rhoai-mlflow/dsc-mlflow-patch.yaml --server-side --force-conflicts
+# Wait for mlflow-operator-controller-manager pod (1/1 Running)
+oc apply -f argo-apps/rhoai-mlflow/mlflow.yaml --server-side --force-conflicts
+# Wait for mlflow pod (2/2 Running)
+```
+
+**Step 2: Set MLFLOW_TRACKING_URI on EvalHub CR**
+```bash
+oc patch evalhub <name> -n <namespace> --type merge -p '{
+  "spec": {
+    "env": [
+      {
+        "name": "MLFLOW_TRACKING_URI",
+        "value": "https://mlflow.redhat-ods-applications.svc.cluster.local:8443/mlflow"
+      }
+    ]
+  }
+}'
+```
+- **The `/mlflow` path suffix is CRITICAL** — the MLflow server uses this path prefix. Without it, all API calls return 404 and the save silently fails
+- Do NOT use `oc set env` on the deployment — the EvalHub operator will reconcile it away. Must patch the EvalHub CR `spec.env`
+- EvalHub already has `MLFLOW_WORKSPACE`, `MLFLOW_TOKEN_PATH`, and `MLFLOW_CA_CERT_PATH` pre-configured — only `MLFLOW_TRACKING_URI` needs to be added
+
+**Step 3: Include `experiment` field in EVERY job submission**
+```bash
+curl -X POST .../api/v1/evaluations/jobs -d '{
+  "name": "my-scan",
+  "model": { "url": "...", "name": "..." },
+  "experiment": { "name": "csob-red-teaming" },
+  "benchmarks": [{ "id": "owasp_llm_top10", "provider_id": "garak" }]
+}'
+```
+- **Without `"experiment": {"name": "..."}`, MLflow save is SILENTLY SKIPPED** — the adapter checks `job_spec.experiment_name` and returns `None` if not set. No error, no warning in logs, just `run ID: None`
+- This is the most common gotcha — the scan completes successfully but nothing lands in MLflow
+
+### What gets stored in MLflow
+- **Metrics**: `attack_success_rate`, per-probe ASR (e.g. `dan.Dan_11_0_asr`), `overall_score`
+- **Params**: `benchmark_id`, `provider_id`, `model_name`, `num_examples_evaluated`, `duration_seconds`
+- **Artifacts**: `scan.hitlog.jsonl` (full prompt+response for every hit), `scan.report.jsonl` (AVID report), `scan.report.html` (garak HTML summary)
+
+### Accessing data in MLflow UI
+- Dashboard: `https://rh-ai.apps.<cluster-domain>/mlflow/`
+- Select workspace (top-left dropdown) → Experiments → click experiment name → **Evaluation runs** (left sidebar) → click run name → **Artifacts** tab
+- Files are previewable inline (HTML, text, JSON supported)
+
+### Architecture
+```
+garak adapter → sidecar (localhost:8080) → MLflow server (8443/mlflow)
+                    ↑ reads SA token from /var/run/secrets/mlflow/token
+                    ↑ reads CA cert from /etc/pki/ca-trust/source/anchors/service-ca.crt
+```
+The sidecar proxies MLflow API calls, adds auth token + workspace header, and handles TLS
+
 ## Sensitive Files (never commit)
 - `.maas-api-key` — MaaS API key
 - `test-maas.sh` — contains API key

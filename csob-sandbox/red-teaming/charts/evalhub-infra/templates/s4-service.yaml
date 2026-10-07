@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: s4-service
+  namespace: {{ include "evalhub-infra.namespace" . }}
+spec:
+  selector:
+    app: s4
+  ports:
+    - name: s3
+      port: 7480
+      targetPort: 7480
+    - name: ui
+      port: 5000
+      targetPort: 5000

@@ -1,0 +1,15 @@
+apiVersion: trustyai.opendatahub.io/v1alpha1
+kind: NemoGuardrails
+metadata:
+  name: csob-guard-embedded-classifier
+  namespace: csob-sandbox
+  annotations:
+    security.opendatahub.io/enable-auth: "false"
+spec:
+  nemoConfigs:
+    - name: nemo-guard-embedded
+      configMaps:
+        - nemo-guard-embedded
+  env:
+    - name: OPENAI_API_KEY
+      value: not-used

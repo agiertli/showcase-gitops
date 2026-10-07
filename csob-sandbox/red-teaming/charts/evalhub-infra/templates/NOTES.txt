@@ -1,0 +1,16 @@
+EvalHub infrastructure deployed to {{ include "evalhub-infra.namespace" . }}.
+
+Components:
+  - S4 object storage (Ceph RadosGW)
+  - PostgreSQL (EvalHub database)
+  - DSPA (Data Science Pipelines)
+  - EvalHub CR (garak + garak-kfp providers)
+  - NetworkPolicy fix (EvalHub → DSPA connectivity)
+
+Wait for pods to be Ready:
+  oc get pods -n {{ include "evalhub-infra.namespace" . }} -w
+
+Verify EvalHub is running:
+  oc get evalhub -n {{ include "evalhub-infra.namespace" . }}
+
+Then submit scans using the evalhub-scan chart.

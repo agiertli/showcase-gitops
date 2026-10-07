@@ -1,0 +1,149 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: report-htpasswd
+  namespace: csob-sandbox
+type: Opaque
+stringData:
+  htpasswd: "csob:$2y$05$3OZWWWp/BlhafNzAsBcdQeti6Wvz7xZJlP2uT3vC/I0AhKsVS3IzS"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: report-nginx-config
+  namespace: csob-sandbox
+data:
+  nginx.conf: |
+    worker_processes 1;
+    error_log /dev/stderr warn;
+    pid /tmp/nginx.pid;
+
+    events {
+      worker_connections 128;
+    }
+
+    http {
+      include /etc/nginx/mime.types;
+      default_type application/octet-stream;
+
+      log_format main '[$time_local] user=$remote_user ip=$http_x_forwarded_for '
+                      'action="$request" status=$status';
+
+      access_log /dev/stdout main;
+
+      client_body_temp_path /tmp/client_temp;
+      proxy_temp_path /tmp/proxy_temp;
+      fastcgi_temp_path /tmp/fastcgi_temp;
+      uwsgi_temp_path /tmp/uwsgi_temp;
+      scgi_temp_path /tmp/scgi_temp;
+
+      server {
+        listen 8080;
+        server_name _;
+        root /usr/share/nginx/html;
+
+        auth_basic "ČSOB Red Teaming Report — Restricted";
+        auth_basic_user_file /etc/nginx/auth/htpasswd;
+
+        location = / {
+          try_files /report.html =404;
+        }
+
+        location = /download {
+          add_header Content-Disposition 'attachment; filename="csob-red-teaming-report.html"';
+          try_files /report.html =404;
+        }
+
+        location = /health {
+          auth_basic off;
+          access_log off;
+          return 200 'ok';
+          add_header Content-Type text/plain;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: report-server
+  namespace: csob-sandbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: report-server
+  template:
+    metadata:
+      labels:
+        app: report-server
+    spec:
+      containers:
+        - name: nginx
+          image: registry.redhat.io/rhel9/nginx-124:latest
+          command: ["nginx"]
+          args: ["-g", "daemon off;", "-c", "/etc/nginx/nginx.conf"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: htpasswd
+              mountPath: /etc/nginx/auth
+              readOnly: true
+            - name: report-html
+              mountPath: /usr/share/nginx/html
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: report-nginx-config
+        - name: htpasswd
+          secret:
+            secretName: report-htpasswd
+        - name: report-html
+          configMap:
+            name: report-html-content
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: report-server
+  namespace: csob-sandbox
+spec:
+  selector:
+    app: report-server
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: csob-report
+  namespace: csob-sandbox
+spec:
+  host: csob-report.apps.ocp.6rklz.sandbox744.opentlc.com
+  to:
+    kind: Service
+    name: report-server
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

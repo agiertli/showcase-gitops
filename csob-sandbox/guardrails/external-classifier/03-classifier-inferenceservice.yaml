@@ -1,0 +1,28 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: wolf-defender-classifier
+  namespace: csob-sandbox
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  predictor:
+    model:
+      args:
+        - "--runner=pooling"
+        - "--convert=classify"
+        - "--enforce-eager"
+        - "--gpu-memory-utilization=0.3"
+      modelFormat:
+        name: vLLM
+      runtime: vllm-cpu-x86-runtime
+      storageUri: pvc://wolf-defender-model/wolf-defender
+      resources:
+        requests:
+          cpu: 500m
+          memory: 2Gi
+        limits:
+          cpu: "4"
+          memory: 6Gi

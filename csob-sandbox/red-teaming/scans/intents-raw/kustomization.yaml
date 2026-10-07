@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: csob-sandbox
+namePrefix: intents-raw-
+resources:
+  - ../base
+configMapGenerator:
+  - name: scan-payload
+    files:
+      - payload.json
+    options:
+      disableNameSuffixHash: true

@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: gemma-4-12b
+  namespace: csob-sandbox
+  labels:
+    opendatahub.io/dashboard: "true"
+spec:
+  host: gemma-4-12b-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com
+  port:
+    targetPort: 8000
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: gemma-4-12b-kserve-workload-svc
+    weight: 100
+  wildcardPolicy: None

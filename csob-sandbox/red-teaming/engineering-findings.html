@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvalHub Engineering Findings -- RHOAI 3.5</title>
+<style>
+  :root {
+    --rh-red: #EE0000;
+    --rh-red-dark: #CC0000;
+    --rh-dark: #1A1A1A;
+    --rh-gray-900: #292929;
+    --rh-gray-600: #6A6E73;
+    --rh-gray-300: #D2D2D2;
+    --rh-gray-100: #F5F5F5;
+    --rh-white: #FFFFFF;
+    --rh-blue: #0066CC;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--rh-dark);
+    background: var(--rh-gray-100);
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: var(--rh-white);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--rh-dark);
+    color: var(--rh-white);
+    padding: 40px 48px 32px;
+    border-bottom: 4px solid var(--rh-red);
+  }
+
+  header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  header .subtitle {
+    font-size: 16px;
+    color: var(--rh-gray-300);
+    margin-bottom: 20px;
+  }
+
+  header .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    font-size: 14px;
+    color: var(--rh-gray-300);
+  }
+
+  header .meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  header .meta strong {
+    color: var(--rh-white);
+    font-weight: 600;
+  }
+
+  main {
+    padding: 40px 48px;
+  }
+
+  .summary-box {
+    background: var(--rh-gray-100);
+    border-left: 4px solid var(--rh-red);
+    padding: 24px;
+    margin-bottom: 40px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .summary-box h2 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: var(--rh-dark);
+  }
+
+  .summary-box p {
+    font-size: 15px;
+    color: var(--rh-gray-900);
+    margin-bottom: 8px;
+  }
+
+  .summary-box .stat {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--rh-red);
+  }
+
+  .finding {
+    margin-bottom: 48px;
+    border: 1px solid var(--rh-gray-300);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .finding-header {
+    padding: 20px 24px;
+    background: var(--rh-gray-100);
+    border-bottom: 1px solid var(--rh-gray-300);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .finding-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--rh-dark);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .badge-critical {
+    background: var(--rh-red);
+    color: var(--rh-white);
+  }
+
+  .badge-high {
+    background: #F0AB00;
+    color: var(--rh-dark);
+  }
+
+  .badge-medium {
+    background: #0066CC;
+    color: var(--rh-white);
+  }
+
+  .badge-low {
+    background: #6A6E73;
+    color: var(--rh-white);
+  }
+
+  .badge-info {
+    background: #009596;
+    color: var(--rh-white);
+  }
+
+  .finding-body {
+    padding: 24px;
+  }
+
+  .finding-body h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--rh-dark);
+    margin: 20px 0 8px;
+  }
+
+  .finding-body h3:first-child {
+    margin-top: 0;
+  }
+
+  .finding-body p {
+    font-size: 14px;
+    color: var(--rh-gray-900);
+    margin-bottom: 12px;
+  }
+
+  .finding-body ul, .finding-body ol {
+    font-size: 14px;
+    color: var(--rh-gray-900);
+    margin: 0 0 12px 20px;
+  }
+
+  .finding-body li {
+    margin-bottom: 6px;
+  }
+
+  pre {
+    background: var(--rh-dark);
+    color: #E0E0E0;
+    padding: 16px 20px;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 12px 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  pre .comment {
+    color: #6A9955;
+  }
+
+  code {
+    background: var(--rh-gray-100);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    color: var(--rh-red-dark);
+  }
+
+  pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+
+  thead th {
+    background: var(--rh-dark);
+    color: var(--rh-white);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  tbody td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rh-gray-300);
+    vertical-align: top;
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--rh-gray-100);
+  }
+
+  tbody tr:hover {
+    background: #FFF0F0;
+  }
+
+  .recommendation {
+    background: #F0FAF0;
+    border-left: 4px solid #3E8635;
+    padding: 16px 20px;
+    margin: 16px 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .recommendation h4 {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #3E8635;
+    margin-bottom: 8px;
+  }
+
+  .recommendation p, .recommendation ol {
+    font-size: 14px;
+    color: var(--rh-gray-900);
+  }
+
+  .recommendation ol {
+    margin-left: 20px;
+  }
+
+  .recommendation li {
+    margin-bottom: 4px;
+  }
+
+  .ui-table {
+    font-size: 13px;
+  }
+
+  .ui-table td:first-child {
+    font-weight: 600;
+    white-space: nowrap;
+    width: 30px;
+  }
+
+  .highlight-row td {
+    font-weight: 700;
+  }
+
+  .asr-good {
+    color: #3E8635;
+    font-weight: 700;
+  }
+
+  .asr-warn {
+    color: #F0AB00;
+    font-weight: 700;
+  }
+
+  .asr-bad {
+    color: var(--rh-red);
+    font-weight: 700;
+  }
+
+  .appendix {
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 2px solid var(--rh-gray-300);
+  }
+
+  .appendix h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--rh-dark);
+    margin-bottom: 16px;
+  }
+
+  footer {
+    background: var(--rh-dark);
+    color: var(--rh-gray-300);
+    padding: 24px 48px;
+    text-align: center;
+    font-size: 14px;
+    border-top: 4px solid var(--rh-red);
+  }
+
+  footer strong {
+    color: var(--rh-white);
+  }
+
+  @media (max-width: 640px) {
+    header, main, footer {
+      padding-left: 24px;
+      padding-right: 24px;
+    }
+
+    header h1 {
+      font-size: 22px;
+    }
+
+    .finding-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    table {
+      font-size: 12px;
+    }
+
+    thead th, tbody td {
+      padding: 8px 10px;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>EvalHub Engineering Findings</h1>
+  <div class="subtitle">Red Hat OpenShift AI 3.5 -- Red Teaming Evaluation</div>
+  <div class="meta">
+    <span><strong>Date:</strong> October 2026</span>
+    <span><strong>Customer:</strong> ČSOB Sandbox</span>
+    <span><strong>Model:</strong> Gemma 4 12B (vLLM / KServe)</span>
+    <span><strong>Author:</strong> Anton Giertli</span>
+  </div>
+</header>
+
+<main>
+
+  <div class="summary-box">
+    <h2>Executive Summary</h2>
+    <p>During red-teaming evaluation of an LLM deployment for the ČSOB banking sandbox, we encountered several issues with the EvalHub/TrustyAI platform that affect production readiness.</p>
+    <p>46 evaluation jobs were submitted across OWASP LLM Top 10 and Intents benchmarks, testing both raw (unguarded) and guardrailed (Wolf Defender, Granite Guardian 8B) configurations.</p>
+    <p class="stat">22 of 46 jobs (48%) show as "Failed" in the UI despite the underlying garak scans completing successfully. Results had to be manually recovered from S3 artifacts.</p>
+  </div>
+
+  <!-- Finding 1 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 1: DSPA NetworkPolicy Blocks EvalHub Pods</h2>
+      <span class="badge badge-critical">Critical</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>ALL intents (garak-kfp) jobs get stuck in "running" state indefinitely or are eventually marked "Failed". EvalHub cannot poll DSPA for pipeline status.</p>
+
+      <h3>Root Cause</h3>
+      <p>The DSPA operator auto-generates a <code>NetworkPolicy</code> named <code>ds-pipelines-dspa</code> in the project namespace (e.g., <code>csob-sandbox</code>). This policy restricts ingress to pods matching specific label selectors:</p>
+
+<pre><code><span class="comment"># Auto-generated by DSPA operator</span>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ds-pipelines-dspa
+  namespace: csob-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: ds-pipeline-dspa
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: ds-pipeline-dspa
+        - podSelector:
+            matchLabels:
+              component: data-science-pipelines</code></pre>
+
+      <p>The EvalHub API pod has label <code>app: eval-hub</code> -- it does not match any allowed selector. Network traffic from the EvalHub pod to the DSPA API endpoint is silently dropped.</p>
+
+      <h3>Symptoms</h3>
+      <ol>
+        <li>EvalHub submits the pipeline run to DSPA successfully (pipeline pods run and complete normally)</li>
+        <li>EvalHub attempts to poll DSPA for status updates on port 8888 (HTTPS) -- connection times out</li>
+        <li>Job stays in "running" state forever in the Evaluations UI</li>
+        <li>If EvalHub pod restarts, it retries the status check, gets connection timeout, and marks the job as "Failed"</li>
+      </ol>
+
+      <h3>Verification</h3>
+<pre><code><span class="comment"># Check the auto-generated NetworkPolicy</span>
+oc get networkpolicy ds-pipelines-dspa -n csob-sandbox -o yaml
+
+<span class="comment"># Check EvalHub pod labels (note: app=eval-hub, NOT app=ds-pipeline-dspa)</span>
+oc get pods -n csob-sandbox -l app=eval-hub --show-labels
+
+<span class="comment"># Check garak job pod labels</span>
+oc get pods -n csob-sandbox -l component=evaluation-job --show-labels</code></pre>
+
+      <h3>Workaround</h3>
+      <p>Create a supplementary NetworkPolicy allowing ingress from <code>app: eval-hub</code> and <code>component: evaluation-job</code> pods:</p>
+<pre><code>apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-evalhub-to-dspa
+  namespace: csob-sandbox
+spec:
+  podSelector:
+    matchLabels:
+      app: ds-pipeline-dspa
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: eval-hub
+        - podSelector:
+            matchLabels:
+              component: evaluation-job
+      ports:
+        - protocol: TCP
+          port: 8888
+        - protocol: TCP
+          port: 8887</code></pre>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <p>The DSPA operator should include EvalHub pods in its auto-generated NetworkPolicy, or the EvalHub operator should create this supplementary policy when it detects a DSPA in the same namespace.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 2 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 2: MLflow runID Propagation Failure in garak-kfp Pipelines</h2>
+      <span class="badge badge-high">High</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>MLflow integration does not save results for <code>intents</code> scans submitted via the garak-kfp provider. Scan results must be manually recovered from S3.</p>
+
+      <h3>Error</h3>
+<pre><code>runID is required to update nested MLflow run</code></pre>
+
+      <h3>Context</h3>
+      <p>The EvalHub MLflow integration flow for garak-kfp:</p>
+      <ol>
+        <li>EvalHub creates an MLflow <strong>parent run</strong> in the configured experiment</li>
+        <li>EvalHub passes the <code>runID</code> of the parent run to the garak-kfp pipeline as a parameter</li>
+        <li>The pipeline's MLflow handler attempts to create a <strong>nested run</strong> under the parent</li>
+        <li>The handler fails because the <code>runID</code> was not correctly propagated through the KFP pipeline parameter chain</li>
+      </ol>
+
+      <h3>Result</h3>
+      <ul>
+        <li>Garak scan completes successfully (results uploaded to S3, HTML report generated)</li>
+        <li>MLflow handler failure may poison the pipeline exit status, contributing to Finding 3</li>
+        <li>No metrics, params, or artifacts land in MLflow for the scan</li>
+      </ul>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <ol>
+          <li>MLflow handler failure should <strong>not</strong> affect the overall pipeline status. Garak scan success should be the primary status indicator.</li>
+          <li>The runID propagation mechanism should be tested end-to-end for garak-kfp pipelines specifically.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 3 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 3: Job Status Poisoning -- Pipeline Success != Job Success</h2>
+      <span class="badge badge-high">High</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>22 of 46 jobs (48%) show as "Failed" in the Evaluations UI, even when the underlying garak scan completed successfully and produced valid results.</p>
+
+      <h3>Evidence</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>View</th>
+            <th>Status</th>
+            <th>Data Shown</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Evaluations</strong> (<code>/evaluations</code>)</td>
+            <td class="asr-bad">Failed</td>
+            <td>No result, no error message</td>
+          </tr>
+          <tr>
+            <td><strong>Pipeline Runs</strong> (<code>/develop-train/runs/csob-sandbox</code>)</td>
+            <td class="asr-good">Complete</td>
+            <td><code>attack_success_rate: 2.63</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Root Cause</h3>
+      <p>Combination of Finding 1 (NetworkPolicy blocking status polling) and Finding 2 (MLflow handler failure). Either failure alone is sufficient to mark the job as "Failed", even when the garak scan itself succeeded.</p>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <ol>
+          <li>Distinguish between <strong>scan failed</strong> (garak error), <strong>infrastructure failure</strong> (DSPA/MLflow unreachable), and <strong>scan succeeded with warnings</strong></li>
+          <li>If the pipeline completed in KFP, the Evaluations job should reflect that and surface the results</li>
+          <li>Failed jobs should display the specific error message, not just "Failed"</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 4 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 4: UI Navigation Gap -- No Cross-Linking Between Views</h2>
+      <span class="badge badge-medium">Medium</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>Users cannot trace from a failed Evaluation to its actual pipeline results. Diagnosing failures requires manual navigation across 4 disconnected UI views.</p>
+
+      <h3>Details</h3>
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>View</th>
+            <th>Shows</th>
+            <th>Missing</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><strong>Experiments</strong> (MLflow)</td>
+            <td>Experiment names, tags, MLflow runs</td>
+            <td>No link to Evaluations</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><strong>Evaluations</strong></td>
+            <td>Job status (Failed / Cancelled / Complete)</td>
+            <td>Cannot drill into Failed jobs. No link to Pipeline Run. No error message.</td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><strong>Artifacts</strong></td>
+            <td>Raw S3 blobs (<code>executor-logs</code>, <code>taxonomy_dataset</code>)</td>
+            <td>No evaluation context. Cannot tell which artifact belongs to which evaluation.</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><strong>Runs</strong></td>
+            <td>KFP pipeline steps, <code>attack_success_rate</code> column</td>
+            <td>No way to navigate here FROM Evaluations</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>User Journey (current state)</h3>
+      <ol>
+        <li>User sees "Failed" in Evaluations</li>
+        <li>No idea why it failed -- no error message, no link</li>
+        <li>Must manually navigate to Pipeline Runs, guess which run corresponds to the evaluation</li>
+        <li>If found, the run may show "Complete" with valid results -- contradicting the "Failed" status</li>
+        <li>To get artifacts, must go to yet another view and guess which S3 blob belongs to the scan</li>
+      </ol>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <ol>
+          <li>Add cross-links: Evaluation -> Pipeline Run -> Artifacts</li>
+          <li>Clicking a Failed evaluation should show the error message, a link to the KFP run, and links to produced artifacts</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 5 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 5: ASR Discrepancy -- Routing Path Affects Results</h2>
+      <span class="badge badge-low">Low</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>Same benchmark (OWASP LLM Top 10), same model (Gemma 4 12B), two different ASR results depending on the network routing path:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Routing Path</th>
+            <th>ASR</th>
+            <th>Scan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>via <code>maas-auth-proxy</code> -> <code>gemma-pool</code></td>
+            <td class="asr-bad">24.67%</td>
+            <td>Earlier scan</td>
+          </tr>
+          <tr>
+            <td>Direct to <code>gemma-pool</code> service</td>
+            <td class="asr-good">6.51%</td>
+            <td>Verification scan</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Context</h3>
+      <p>The proxy may introduce latency, modify HTTP headers, or affect streaming/chunked response behavior in ways that change how garak's attack probes interact with the model. A 4x difference in ASR is surprising and warrants investigation into whether the proxy is introducing artifacts that affect garak's probe evaluation logic.</p>
+
+      <h3>Verification</h3>
+<pre><code><span class="comment"># Compare response headers between direct and proxied requests</span>
+curl -sk https://gemma-pool.csob-sandbox.svc:8000/v1/models \
+  -H "Authorization: Bearer $TOKEN"
+curl -sk https://maas-auth-proxy.csob-sandbox.svc:8080/v1/models \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <p>Investigate whether the proxy introduces artifacts (header changes, streaming differences, latency) that affect garak probe evaluation. This may be expected behavior, but a 4x ASR difference is significant enough to document.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 6 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 6: EvalHub API Cannot Delete Running/Failed Jobs (HTTP 409)</h2>
+      <span class="badge badge-medium">Medium</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>Once an EvalHub evaluation job transitions to <code>running</code> or <code>failed</code> state, the API refuses to delete it with HTTP 409 Conflict. This leads to zombie entries in the Evaluations UI that can only be removed by directly deleting rows from the PostgreSQL database.</p>
+
+      <h3>Root Cause</h3>
+      <p>The EvalHub API enforces state-based delete restrictions. A job in <code>running</code> state cannot be deleted even if the eval pod was killed (orphaned job). A job in <code>failed</code> state also cannot be deleted. The cancel event endpoint (<code>POST /jobs/{id}/events</code> with <code>status: cancelled</code>) returns 400 &mdash; the cancellation event format may differ from what the API expects.</p>
+
+      <h3>Reproduction</h3>
+<pre><code><span class="comment"># Submit a job, let it start running, then kill the eval pod</span>
+oc delete pod &lt;eval-pod&gt; -n csob-sandbox --force --grace-period=0
+
+<span class="comment"># Try to delete the orphaned job -- returns 409</span>
+TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+curl -sk -X DELETE "https://evalhub:8443/api/v1/evaluations/jobs/&lt;job-id&gt;" \
+  -H "Authorization: Bearer $TOKEN" -H "X-Tenant: csob-sandbox"
+<span class="comment"># HTTP 409 Conflict</span></code></pre>
+
+      <h3>Workaround</h3>
+      <p>Delete directly from PostgreSQL:</p>
+<pre><code>oc exec &lt;evalhub-postgres-pod&gt; -n csob-sandbox -- \
+  psql -U evalhub -d evalhub -c "DELETE FROM evaluations WHERE id NOT IN ('&lt;keep-id-1&gt;','&lt;keep-id-2&gt;');"</code></pre>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <ol>
+          <li>Add a <code>force=true</code> query parameter to the DELETE endpoint that bypasses state checks</li>
+          <li>Add TTL-based cleanup for jobs in <code>running</code> state with no corresponding eval pod</li>
+          <li>Expose a "Delete" action in the Evaluations UI for failed/cancelled jobs</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 7 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 7: kube-rbac-proxy Missing MLflow Experiment Create Permission</h2>
+      <span class="badge badge-high">High</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>Scan submission Jobs using the default ServiceAccount get HTTP 403 from EvalHub's kube-rbac-proxy:</p>
+<pre><code>Forbidden (user=system:serviceaccount:csob-sandbox:default, verb=create,
+resource=experiments, subresource=)</code></pre>
+      <p>The operator-created <code>evalhub-tenant-admin</code> Role only grants <code>get, list</code> on <code>mlflow.kubeflow.org/experiments</code>, but the kube-rbac-proxy auth config requires <code>create</code> for POST to <code>/api/v1/evaluations/jobs</code>.</p>
+
+      <h3>Root Cause</h3>
+      <p>The kube-rbac-proxy config (<code>auth.yaml</code>) maps POST <code>/api/v1/evaluations/jobs</code> to THREE SubjectAccessReview checks:</p>
+      <ol>
+        <li><code>trustyai.opendatahub.io/evaluations:create</code> &mdash; granted by <code>evalhub-tenant-admin</code></li>
+        <li><code>mlflow.kubeflow.org/experiments:create</code> &mdash; <strong>NOT granted</strong></li>
+        <li><code>mlflow.kubeflow.org/experiments:get</code> &mdash; granted by <code>evalhub-tenant-admin</code></li>
+      </ol>
+      <p>All three must pass. The missing <code>create</code> verb on <code>experiments</code> causes 403 for ALL ServiceAccount-based scan submissions.</p>
+
+      <h3>Workaround</h3>
+<pre><code>oc create role evalhub-mlflow-experiment-create -n csob-sandbox \
+  --verb=create,get,list --resource=experiments \
+  --resource-group=mlflow.kubeflow.org
+oc create rolebinding evalhub-mlflow-experiment-create-binding \
+  -n csob-sandbox \
+  --role=evalhub-mlflow-experiment-create \
+  --group=system:serviceaccounts:csob-sandbox</code></pre>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <p>The <code>evalhub-tenant-admin</code> Role should include <code>create</code> on <code>mlflow.kubeflow.org/experiments</code> to match the kube-rbac-proxy auth config requirements.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 8 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 8: LiteLLM SDG Step Requires Provider-Prefixed Model Name</h2>
+      <span class="badge badge-high">High</span>
+    </div>
+    <div class="finding-body">
+      <h3>Impact</h3>
+      <p>The garak-kfp intents pipeline <code>sdg-generate</code> step crashes within seconds:</p>
+<pre><code>litellm.BadRequestError: LLM Provider NOT provided. Pass in the LLM provider
+you are trying to call. You passed model=gemma-4-12b</code></pre>
+      <p>This causes the KFP pipeline run to FAIL, which causes the eval pod to report FAILED, which pollutes the Evaluations UI with failed entries.</p>
+
+      <h3>Root Cause</h3>
+      <p>The SDG step uses LiteLLM internally for model inference. LiteLLM requires a provider prefix (e.g., <code>openai/gemma-4-12b</code>) when using a custom <code>api_base</code> URL. Bare model names like <code>gemma-4-12b</code> fail because LiteLLM cannot determine which provider format to use.</p>
+      <p>The <code>intents_models.sdg.name</code> and <code>intents_models.judge.name</code> fields in the EvalHub API payload must use the LiteLLM provider prefix.</p>
+
+      <h3>Working Configuration</h3>
+<pre><code>"intents_models": {
+  "judge": {"url": "http://gemma-pool:8000/v1", "name": "openai/gemma-4-12b"},
+  "sdg": {"url": "http://gemma-pool:8000/v1", "name": "openai/gemma-4-12b"}
+}</code></pre>
+      <p>For external MaaS endpoints, use the appropriate LiteLLM prefix (e.g., <code>hosted_vllm/qwen36-35b-a3b</code>).</p>
+
+      <div class="recommendation">
+        <h4>Recommendation</h4>
+        <p>EvalHub should auto-prefix model names with <code>openai/</code> when a custom <code>api_base</code> is provided and no prefix is present, since the vast majority of self-hosted vLLM endpoints are OpenAI-compatible.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finding 9 -->
+  <div class="finding">
+    <div class="finding-header">
+      <h2>Finding 9: Scan Results Summary</h2>
+      <span class="badge badge-info">Info</span>
+    </div>
+    <div class="finding-body">
+      <h3>OWASP LLM Top 10 (garak provider)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>ASR</th>
+            <th>Guardrail</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Raw (via proxy)</td>
+            <td class="asr-bad">24.67%</td>
+            <td>None</td>
+            <td>Earlier scan, routed through <code>maas-auth-proxy</code></td>
+          </tr>
+          <tr>
+            <td>Raw (direct)</td>
+            <td class="asr-warn">6.51%</td>
+            <td>None</td>
+            <td>Verification scan, direct to <code>gemma-pool</code></td>
+          </tr>
+          <tr>
+            <td>Guardrailed</td>
+            <td class="asr-good">4.88%</td>
+            <td>Wolf Defender (embedded)</td>
+            <td><strong>80.2% relative reduction</strong> vs 24.67% raw</td>
+          </tr>
+          <tr>
+            <td>Guardrailed</td>
+            <td class="asr-warn">10.18%</td>
+            <td>Granite Guardian 8B (external)</td>
+            <td>Worse than Wolf Defender</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Intents (garak-kfp provider)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Variant</th>
+            <th>ASR</th>
+            <th>Duration</th>
+            <th>Guardrail</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Raw</td>
+            <td class="asr-good">0--2.63%</td>
+            <td>~4 hours</td>
+            <td>None</td>
+            <td>Strong built-in safety on Gemma 4 12B</td>
+          </tr>
+          <tr>
+            <td>Guardrailed</td>
+            <td class="asr-good">0--2.63%</td>
+            <td>~4 hours</td>
+            <td>Wolf Defender</td>
+            <td>Minimal delta -- base model already safe</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Analysis</h3>
+      <ul>
+        <li><strong>OWASP attacks</strong> (prompt injection, jailbreaking): Wolf Defender provides significant protection. Gemma 4 12B's built-in alignment is insufficient -- 24.67% ASR means roughly 1 in 4 OWASP attacks succeed against the raw model.</li>
+        <li><strong>Intent-based attacks</strong> (SPO probes, TAP): Gemma 4 12B has robust built-in alignment. ASR is already near zero without guardrails, so Wolf Defender adds minimal incremental value for this attack category.</li>
+        <li><strong>Wolf Defender vs Granite Guardian 8B</strong>: Wolf Defender (4.88% ASR) outperforms Granite Guardian 8B (10.18% ASR) on the OWASP benchmark. Wolf Defender's embedded architecture also has lower latency overhead.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Appendix -->
+  <div class="appendix">
+    <h2>Appendix: Environment Details</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>RHOAI</td>
+          <td>3.5 Self-Managed</td>
+        </tr>
+        <tr>
+          <td>Model</td>
+          <td>Gemma 4 12B (vLLM on KServe)</td>
+        </tr>
+        <tr>
+          <td>Guardrails</td>
+          <td>Wolf Defender (embedded), Granite Guardian 8B (external vLLM CPU)</td>
+        </tr>
+        <tr>
+          <td>EvalHub</td>
+          <td>Deployed via EvalHub CR in <code>csob-sandbox</code> namespace</td>
+        </tr>
+        <tr>
+          <td>DSPA</td>
+          <td><code>dspa</code> instance in <code>csob-sandbox</code> namespace</td>
+        </tr>
+        <tr>
+          <td>MLflow</td>
+          <td><code>redhat-ods-applications</code> namespace, tracking URI with <code>/mlflow</code> suffix</td>
+        </tr>
+        <tr>
+          <td>Cluster</td>
+          <td>OpenShift 4.x, AWS, GPU nodes (NVIDIA L4)</td>
+        </tr>
+        <tr>
+          <td>Benchmarks</td>
+          <td>OWASP LLM Top 10 (garak), Intents (garak-kfp)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<footer>
+  <strong>Red Hat</strong> -- Anton Giertli, Senior Solution Architect
+</footer>
+
+</div>
+</body>
+</html>

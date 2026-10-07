@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-wolf-defender-model
+  namespace: csob-sandbox
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: download
+          image: registry.access.redhat.com/ubi9/python-312:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install -q huggingface_hub
+              python3 -c "
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  repo_id='patronus-studio/wolf-defender-prompt-injection',
+                  local_dir='/models/wolf-defender',
+              )
+              print('Download complete')
+              "
+          env:
+            # Uncomment for bank's internal Nexus mirror:
+            # - name: HF_ENDPOINT
+            #   value: "https://nexus.bank.internal/repository/huggingface"
+            - name: HF_HUB_DISABLE_TELEMETRY
+              value: "1"
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: wolf-defender-model

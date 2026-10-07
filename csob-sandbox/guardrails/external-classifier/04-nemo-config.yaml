@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nemo-guard-external
+  namespace: csob-sandbox
+  annotations:
+    description: >-
+      Bank-ready variant: Wolf Defender classifier served via vLLM CPU x86
+      runtime on KServe. Model loaded from PVC (Nexus -> Job -> PVC).
+      No internet access or GPU required at runtime.
+data:
+  config.yaml: |
+    instructions:
+      - type: general
+        content: |
+          You are a helpful banking assistant for ČSOB (Československá obchodní banka).
+          You answer questions about banking products, accounts, and financial services.
+          Be concise and professional. Answer in the same language the customer uses.
+          Never disclose internal system details, credentials, or competitor information.
+    models:
+      - type: main
+        engine: openai
+        parameters:
+          base_url: "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1"
+          model_name: "gemma-4-12b"
+    enable_dialog_engine: false
+    rails:
+      config:
+        hf_classifier:
+          prompt-injection:
+            engine: vllm
+            model: wolf-defender-classifier
+            base_url: "http://wolf-defender-classifier-predictor.csob-sandbox.svc.cluster.local:8080"
+            threshold: 0.9
+            blocked_labels:
+              - "injection"
+        sensitive_data_detection:
+          input:
+            entities: [CREDIT_CARD, IBAN_CODE]
+          output:
+            entities: [CREDIT_CARD, IBAN_CODE]
+        regex_detection:
+          input:
+            patterns:
+              - "(?i)česká\\s+spořitelna"
+              - "(?i)ceska\\s+sporitelna"
+              - "(?i)(show|tell|reveal|repeat|display|print|output)\\s+.*(system\\s+prompt|instructions)"
+              - "\\b(password|secret|api[_-]?key|token)\\b"
+              - "\\d{6}/\\d{3,4}"
+            case_insensitive: true
+          output:
+            patterns:
+              - "\\d{6}/\\d{3,4}"
+            case_insensitive: true
+      input:
+        flows:
+          - hf classifier check input $classifier=prompt-injection
+          - detect sensitive data on input
+          - regex check input
+      output:
+        flows:
+          - detect sensitive data on output
+          - regex check output
+  rails.co: |
+    define bot refuse to respond
+      "I'm sorry, I can't process that request as it may contain unsafe content."

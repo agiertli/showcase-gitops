@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: maas-rhdp-api-key
+  namespace: csob-sandbox
+type: Opaque
+stringData:
+  API_KEY: "REPLACE_ME"

@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s4
+  namespace: {{ include "evalhub-infra.namespace" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s4
+  template:
+    metadata:
+      labels:
+        app: s4
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: s4-data
+      containers:
+        - name: s4
+          image: {{ .Values.s4.image }}
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: {{ .Values.s4.credentials.accessKeyId | quote }}
+            - name: AWS_SECRET_ACCESS_KEY
+              value: {{ .Values.s4.credentials.secretAccessKey | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.s4.credentials.region | quote }}
+          ports:
+            - containerPort: 5000
+              name: ui
+            - containerPort: 7480
+              name: s3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/ceph/radosgw
+          resources:
+            requests:
+              cpu: {{ .Values.s4.resources.requests.cpu }}
+              memory: {{ .Values.s4.resources.requests.memory }}
+            limits:
+              memory: {{ .Values.s4.resources.limits.memory }}

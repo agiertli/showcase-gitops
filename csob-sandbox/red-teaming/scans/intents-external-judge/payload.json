@@ -1,0 +1,51 @@
+{
+  "name": "intents-external-judge",
+  "model": {
+    "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
+    "name": "gemma-4-12b",
+    "auth": {
+      "secret_ref": "intents-model-auth"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "intents",
+      "provider_id": "garak-kfp",
+      "parameters": {
+        "kfp_config": {
+          "endpoint": "https://ds-pipeline-dspa.csob-sandbox.svc.cluster.local:8888",
+          "namespace": "csob-sandbox",
+          "s3_secret_name": "s4-credentials",
+          "s3_endpoint": "http://s4-service.csob-sandbox.svc.cluster.local:7480",
+          "s3_bucket": "garak-pipeline",
+          "verify_ssl": false
+        },
+        "intents_models": {
+          "judge": {
+            "url": "https://maas-rhdp.apps.maas.redhatworkshops.io/v1",
+            "name": "qwen36-35b-a3b"
+          },
+          "sdg": {
+            "url": "https://maas-rhdp.apps.maas.redhatworkshops.io/v1",
+            "name": "hosted_vllm/qwen36-35b-a3b"
+          }
+        },
+        "sdg_num_samples": 1,
+        "garak_config": {
+          "system": {
+            "parallel_attempts": 1
+          },
+          "run": {
+            "langproviders": null
+          },
+          "plugins": {
+            "probe_spec": "spo.SPOIntent"
+          }
+        }
+      }
+    }
+  ],
+  "experiment": {
+    "name": "csob-red-teaming-intents-v6"
+  }
+}

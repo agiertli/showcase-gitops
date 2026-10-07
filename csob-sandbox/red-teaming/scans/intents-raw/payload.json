@@ -1,0 +1,59 @@
+{
+  "name": "intents-raw",
+  "model": {
+    "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
+    "name": "gemma-4-12b",
+    "auth": {
+      "secret_ref": "intents-model-auth"
+    }
+  },
+  "benchmarks": [
+    {
+      "id": "intents",
+      "provider_id": "garak-kfp",
+      "parameters": {
+        "kfp_config": {
+          "endpoint": "https://ds-pipeline-dspa.csob-sandbox.svc.cluster.local:8888",
+          "namespace": "csob-sandbox",
+          "s3_secret_name": "s4-credentials",
+          "s3_endpoint": "http://s4-service.csob-sandbox.svc.cluster.local:7480",
+          "s3_bucket": "garak-pipeline",
+          "verify_ssl": false
+        },
+        "intents_models": {
+          "judge": {
+            "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
+            "name": "openai/gemma-4-12b"
+          },
+          "sdg": {
+            "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
+            "name": "openai/gemma-4-12b"
+          }
+        },
+        "sdg_num_samples": 5,
+        "garak_config": {
+          "system": {
+            "parallel_attempts": 16,
+            "parallel_requests": true
+          },
+          "run": {
+            "langproviders": null
+          },
+          "plugins": {
+            "probe_spec": "spo.SPOIntent,spo.SPOIntentUserAugmented,spo.SPOIntentSystemAugmented,spo.SPOIntentBothAugmented,tap.TAPIntent",
+            "probes": {
+              "tap.TAPIntent": {
+                "depth": 3,
+                "width": 5,
+                "branching_factor": 2
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "experiment": {
+    "name": "csob-red-teaming-intents-v6"
+  }
+}

@@ -1,0 +1,503 @@
+---
+# PVCs for model storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gemma-model-2
+  namespace: csob-sandbox
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gemma-model-3
+  namespace: csob-sandbox
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 30Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gemma-model-4
+  namespace: csob-sandbox
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 30Gi
+---
+# Download Jobs — pull model from HuggingFace in parallel
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-gemma-2
+  namespace: csob-sandbox
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: download
+          image: registry.redhat.io/ubi9/python-312:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install -q huggingface_hub
+              python3 -c "
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  'RedHatAI/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir='/models/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir_use_symlinks=False,
+              )
+              print('Download complete')
+              "
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-2
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-gemma-3
+  namespace: csob-sandbox
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: download
+          image: registry.redhat.io/ubi9/python-312:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install -q huggingface_hub
+              python3 -c "
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  'RedHatAI/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir='/models/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir_use_symlinks=False,
+              )
+              print('Download complete')
+              "
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-3
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-gemma-4
+  namespace: csob-sandbox
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: download
+          image: registry.redhat.io/ubi9/python-312:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              pip install -q huggingface_hub
+              python3 -c "
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  'RedHatAI/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir='/models/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir_use_symlinks=False,
+              )
+              print('Download complete')
+              "
+          volumeMounts:
+            - name: model-storage
+              mountPath: /models
+          resources:
+            requests:
+              cpu: "1"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-4
+---
+# vLLM Deployments — HTTP only (internal, accessed through proxy)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-pool-2
+  namespace: csob-sandbox
+  labels:
+    app: gemma-pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-pool
+      instance: gemma-pool-2
+  template:
+    metadata:
+      labels:
+        app: gemma-pool
+        instance: gemma-pool-2
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: vllm
+          image: registry.redhat.io/rhaii/vllm-cuda-rhel9@sha256:c056e61672b6aea489ad5dde0bd2f8497230f5333e87f7cf6c494eba3bfdc808
+          command:
+            - /bin/bash
+            - -c
+            - |
+              exec vllm serve /mnt/models \
+                --served-model-name gemma-4-12b \
+                --port 8000 \
+                --dtype auto \
+                --max-model-len 8192 \
+                --gpu-memory-utilization 0.90 \
+                --trust-remote-code \
+                --disable-uvicorn-access-log
+          env:
+            - name: HOME
+              value: /home
+            - name: VLLM_LOGGING_LEVEL
+              value: INFO
+            - name: HF_HUB_CACHE
+              value: /models-cache
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "1"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 60
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/models
+              subPath: gemma-4-12B-it-FP8-Dynamic
+              readOnly: true
+            - name: home
+              mountPath: /home
+            - name: dshm
+              mountPath: /dev/shm
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: model-cache
+              mountPath: /models-cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-2
+        - name: home
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: model-cache
+          emptyDir: {}
+        - name: tmp-dir
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-pool-3
+  namespace: csob-sandbox
+  labels:
+    app: gemma-pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-pool
+      instance: gemma-pool-3
+  template:
+    metadata:
+      labels:
+        app: gemma-pool
+        instance: gemma-pool-3
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: vllm
+          image: registry.redhat.io/rhaii/vllm-cuda-rhel9@sha256:c056e61672b6aea489ad5dde0bd2f8497230f5333e87f7cf6c494eba3bfdc808
+          command:
+            - /bin/bash
+            - -c
+            - |
+              exec vllm serve /mnt/models \
+                --served-model-name gemma-4-12b \
+                --port 8000 \
+                --dtype auto \
+                --max-model-len 8192 \
+                --gpu-memory-utilization 0.90 \
+                --trust-remote-code \
+                --disable-uvicorn-access-log
+          env:
+            - name: HOME
+              value: /home
+            - name: VLLM_LOGGING_LEVEL
+              value: INFO
+            - name: HF_HUB_CACHE
+              value: /models-cache
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "1"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 60
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/models
+              subPath: gemma-4-12B-it-FP8-Dynamic
+              readOnly: true
+            - name: home
+              mountPath: /home
+            - name: dshm
+              mountPath: /dev/shm
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: model-cache
+              mountPath: /models-cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-3
+        - name: home
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: model-cache
+          emptyDir: {}
+        - name: tmp-dir
+          emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gemma-pool-4
+  namespace: csob-sandbox
+  labels:
+    app: gemma-pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gemma-pool
+      instance: gemma-pool-4
+  template:
+    metadata:
+      labels:
+        app: gemma-pool
+        instance: gemma-pool-4
+    spec:
+      tolerations:
+        - effect: NoSchedule
+          key: nvidia.com/gpu
+          operator: Exists
+      containers:
+        - name: vllm
+          image: registry.redhat.io/rhaii/vllm-cuda-rhel9@sha256:c056e61672b6aea489ad5dde0bd2f8497230f5333e87f7cf6c494eba3bfdc808
+          command:
+            - /bin/bash
+            - -c
+            - |
+              exec vllm serve /mnt/models \
+                --served-model-name gemma-4-12b \
+                --port 8000 \
+                --dtype auto \
+                --max-model-len 8192 \
+                --gpu-memory-utilization 0.90 \
+                --trust-remote-code \
+                --disable-uvicorn-access-log
+          env:
+            - name: HOME
+              value: /home
+            - name: VLLM_LOGGING_LEVEL
+              value: INFO
+            - name: HF_HUB_CACHE
+              value: /models-cache
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"
+            requests:
+              cpu: "1"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 60
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/models
+              subPath: gemma-4-12B-it-FP8-Dynamic
+              readOnly: true
+            - name: home
+              mountPath: /home
+            - name: dshm
+              mountPath: /dev/shm
+            - name: tmp-dir
+              mountPath: /tmp
+            - name: model-cache
+              mountPath: /models-cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-model-4
+        - name: home
+          emptyDir: {}
+        - name: dshm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Gi
+        - name: model-cache
+          emptyDir: {}
+        - name: tmp-dir
+          emptyDir: {}
+---
+# Service to load-balance across all pool instances
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemma-pool
+  namespace: csob-sandbox
+spec:
+  selector:
+    app: gemma-pool
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP

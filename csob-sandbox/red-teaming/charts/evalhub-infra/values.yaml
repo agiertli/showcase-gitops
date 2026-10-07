@@ -1,0 +1,52 @@
+namespace: csob-sandbox
+
+s4:
+  image: quay.io/rh-aiservices-bu/s4:latest
+  pvc:
+    size: 10Gi
+  credentials:
+    accessKeyId: s4admin
+    secretAccessKey: s4secret
+    region: us-east-1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+postgres:
+  image: registry.redhat.io/rhel9/postgresql-15:latest
+  user: evalhub
+  password: evalhub123
+  database: evalhub
+  pvc:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+dspa:
+  mariadb:
+    pvcSize: 10Gi
+  s3:
+    bucket: garak-pipeline
+
+modelAuth:
+  targetApiKey: "DUMMY"
+  judgeApiKey: ""
+  sdgApiKey: ""
+  attackerApiKey: ""
+
+evalhub:
+  providers:
+    - garak
+    - garak-kfp
+  collections:
+    - safety-and-fairness-v1
+  mlflowTrackingUri: "https://mlflow.redhat-ods-applications.svc.cluster.local:8443/mlflow"

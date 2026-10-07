@@ -1,0 +1,37 @@
+apiVersion: serving.kserve.io/v1alpha2
+kind: LLMInferenceService
+metadata:
+  annotations:
+    opendatahub.io/hardware-profile-name: gpu-profile
+    opendatahub.io/hardware-profile-namespace: redhat-ods-applications
+  labels:
+    networking.kserve.io/visibility: exposed
+    opendatahub.io/dashboard: "true"
+    opendatahub.io/genai-asset: "true"
+  name: gemma-4-12b
+  namespace: csob-sandbox
+spec:
+  model:
+    uri: pvc://gemma-4-12b-model/gemma-4-12B-it-FP8-Dynamic
+  replicas: 1
+  template:
+    containers:
+      - name: main
+        args:
+          - --dtype=auto
+          - --max-model-len=8192
+          - --gpu-memory-utilization=0.90
+          - --trust-remote-code
+        resources:
+          limits:
+            cpu: "4"
+            memory: 16Gi
+            nvidia.com/gpu: "1"
+          requests:
+            cpu: "1"
+            memory: 8Gi
+            nvidia.com/gpu: "1"
+    tolerations:
+      - effect: NoSchedule
+        key: nvidia.com/gpu
+        operator: Exists

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: csob-sandbox
+  labels:
+    opendatahub.io/dashboard: "true"
+    evalhub.trustyai.opendatahub.io/tenant: csob-sandbox

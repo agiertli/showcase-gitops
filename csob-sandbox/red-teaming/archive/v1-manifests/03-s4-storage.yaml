@@ -1,0 +1,72 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s4-data
+  namespace: csob-sandbox
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s4
+  namespace: csob-sandbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s4
+  template:
+    metadata:
+      labels:
+        app: s4
+    spec:
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: s4-data
+      containers:
+        - name: s4
+          image: quay.io/rh-aiservices-bu/s4:latest
+          env:
+            - name: AWS_ACCESS_KEY_ID
+              value: s4admin
+            - name: AWS_SECRET_ACCESS_KEY
+              value: s4secret
+            - name: AWS_DEFAULT_REGION
+              value: us-east-1
+          ports:
+            - containerPort: 5000
+              name: ui
+            - containerPort: 7480
+              name: s3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/ceph/radosgw
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s4-service
+  namespace: csob-sandbox
+spec:
+  selector:
+    app: s4
+  ports:
+    - name: s3
+      port: 7480
+      targetPort: 7480
+    - name: ui
+      port: 5000
+      targetPort: 5000

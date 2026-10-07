@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ČSOB Sandbox — Session Report (2026-09-29)</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Red Hat Display','Segoe UI',system-ui,sans-serif;background:#f5f5f5;color:#333;padding:2rem}
+.c{max-width:1200px;margin:0 auto}
+h1{color:#c00;margin-bottom:.3rem;font-size:1.8rem}
+h2{color:#333;margin:2rem 0 .8rem;font-size:1.3rem;border-bottom:2px solid #c00;padding-bottom:.4rem}
+h3{color:#555;margin:1.2rem 0 .5rem;font-size:1.05rem}
+.sub{color:#666;margin-bottom:1.5rem;font-size:.95rem}
+.badge{display:inline-block;padding:4px 14px;border-radius:16px;font-size:.85rem;font-weight:600;color:#fff;margin-right:.5rem;margin-bottom:.5rem}
+.badge.done{background:#28a745}.badge.prep{background:#0066cc}.badge.defer{background:#6c757d}.badge.tp{background:#ffc107;color:#333}
+.row{display:flex;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap}
+.card{flex:1;min-width:200px;padding:1.2rem;border-radius:8px;text-align:center}
+.card .n{font-size:2.2rem;font-weight:700}.card .l{font-size:.85rem;text-transform:uppercase;opacity:.8}
+.card.green{background:#d4edda;color:#155724}
+.card.blue{background:#d1ecf1;color:#0c5460}
+.card.orange{background:#fff3cd;color:#856404}
+.card.red{background:#f8d7da;color:#721c24}
+.card.gray{background:#e8e8e8;color:#333}
+.info{background:#fff;padding:1rem 1.2rem;border-radius:8px;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,.08);font-size:.9rem;line-height:1.6}
+.info code{background:#f0f0f0;padding:2px 6px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:.82rem}
+.arch{background:#e8f4f8;border-left:4px solid #0066cc;padding:1rem 1.2rem;margin-bottom:1.5rem;border-radius:0 8px 8px 0;font-size:.88rem}
+.arch h3{color:#0066cc;margin:0 0 .5rem}
+.warn{background:#fff3cd;border-left:4px solid #ffc107;padding:.8rem 1.2rem;margin-bottom:1rem;border-radius:0 8px 8px 0;font-size:.88rem}
+.warn h3{color:#856404;margin:0 0 .3rem;font-size:.95rem}
+.done-box{background:#d4edda;border-left:4px solid #28a745;padding:.8rem 1.2rem;margin-bottom:1rem;border-radius:0 8px 8px 0;font-size:.88rem}
+.done-box h3{color:#155724;margin:0 0 .3rem;font-size:.95rem}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:.85rem;margin-bottom:1.5rem}
+th{background:#333;color:#fff;padding:10px 12px;text-align:left;font-size:.78rem;text-transform:uppercase}
+td{padding:10px 12px;border-bottom:1px solid #eee;vertical-align:top}
+tr:last-child td{border-bottom:none}tr:hover{background:#fafafa}
+pre{background:#1e1e1e;color:#d4d4d4;padding:1rem;border-radius:8px;overflow-x:auto;font-size:.82rem;margin-bottom:1rem;line-height:1.5}
+pre .comment{color:#6a9955}pre .key{color:#9cdcfe}pre .string{color:#ce9178}pre .cmd{color:#dcdcaa}
+.timeline{position:relative;padding-left:2rem;margin-bottom:1.5rem}
+.timeline::before{content:'';position:absolute;left:.6rem;top:0;bottom:0;width:2px;background:#ddd}
+.tl-item{position:relative;margin-bottom:1rem;padding-left:1.5rem}
+.tl-item::before{content:'';position:absolute;left:-1.45rem;top:.4rem;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #999}
+.tl-item.done::before{background:#28a745;box-shadow:0 0 0 2px #28a745}
+.tl-item.prep::before{background:#0066cc;box-shadow:0 0 0 2px #0066cc}
+.tl-item.defer::before{background:#6c757d;box-shadow:0 0 0 2px #6c757d}
+.tl-title{font-weight:600;font-size:.95rem}.tl-desc{font-size:.85rem;color:#666;margin-top:.2rem}
+footer{margin-top:2rem;text-align:center;color:#999;font-size:.8rem;padding-top:1rem;border-top:1px solid #eee}
+</style>
+</head>
+<body>
+<div class="c">
+
+<h1>ČSOB Sandbox — Session Report</h1>
+<p class="sub">Red Hat OpenShift AI 3.5.1 | ČSOB CZ On-Site Preparation | 2026-09-28 / 2026-09-29</p>
+
+<div class="row">
+<div class="card green"><div class="n">14/14</div><div class="l">Guardrails Tests Passed</div></div>
+<div class="card blue"><div class="n">9</div><div class="l">Manifests Created</div></div>
+<div class="card orange"><div class="n">Tech Preview</div><div class="l">Garak Risk Assessment</div></div>
+<div class="card gray"><div class="n">2</div><div class="l">Models Available</div></div>
+</div>
+
+<!-- ===== WHAT WE HAVE ===== -->
+<h2>What's Already Deployed</h2>
+
+<div class="done-box">
+<h3>Guardrails — Fully Working (14/14 tests pass)</h3>
+<p>NeMo Guardrails with ML-based prompt injection detection (Wolf Defender classifier) deployed in two variants: embedded (in-process) and external (KServe-served). Both pass all 14 test cases including prompt injection, PII detection, competitor blocking, and Czech national ID filtering.</p>
+</div>
+
+<div class="info">
+<strong>Model:</strong> <code>RedHatAI/gemma-4-12B-it-FP8-Dynamic</code> — 12B parameters, FP8 quantization, ~12.75 GiB VRAM on NVIDIA L4 (24GB)<br>
+<strong>Classifier:</strong> <code>patronus-studio/wolf-defender-prompt-injection</code> — 86M params, CPU-only, ~50ms inference<br>
+<strong>Platform:</strong> RHOAI 3.5.1 on OpenShift (AWS), TrustyAI operator manages NemoGuardrails CRs
+</div>
+
+<h3>Three Defense Layers</h3>
+<table>
+<tr><th>Layer</th><th>Type</th><th>What It Catches</th><th>Latency</th></tr>
+<tr><td>ML Classifier</td><td>Wolf Defender (DeBERTa)</td><td>Prompt injection, jailbreak attempts (including paraphrased)</td><td>~50ms</td></tr>
+<tr><td>PII Detection</td><td>Presidio</td><td>Credit cards, IBAN codes</td><td>~10ms</td></tr>
+<tr><td>Regex Patterns</td><td>Custom rules</td><td>Competitor names (Česká spořitelna), system prompt extraction, Czech national ID (rodné číslo)</td><td>~0ms</td></tr>
+</table>
+
+<h3>Endpoints (auth disabled for PoC)</h3>
+<table>
+<tr><th>Endpoint</th><th>Description</th></tr>
+<tr><td><code>gemma-4-12b-csob-sandbox.apps.&lt;domain&gt;/v1/chat/completions</code></td><td>Direct vLLM — no guardrails</td></tr>
+<tr><td><code>csob-guard-embedded-classifier-csob-sandbox.apps.&lt;domain&gt;/v1/chat/completions</code></td><td>NeMo Guardrails — embedded classifier</td></tr>
+<tr><td><code>csob-guard-external-classifier-csob-sandbox.apps.&lt;domain&gt;/v1/chat/completions</code></td><td>NeMo Guardrails — external classifier (KServe)</td></tr>
+</table>
+
+<!-- ===== WHAT WE BUILT TODAY ===== -->
+<h2>What Was Built This Session</h2>
+
+<div class="arch">
+<h3>Garak Red Teaming — Automated Safety Assessment</h3>
+<p>Created complete manifest set for running Garak intents-based risk assessment via EvalHub (TrustyAI operator). The assessment runs the <strong>same attack suite against both endpoints</strong> (raw vLLM vs. guardrailed) to produce a quantitative comparison of guardrails effectiveness via Attack Success Rate (ASR).</p>
+</div>
+
+<h3>Architecture</h3>
+<pre>
+<span class="comment">  # External models (MaaS RHDP — Red Hat Demo Platform)</span>
+  ┌──────────────────────────────────────┐
+  │  maas-rhdp.apps.maas.redhatworkshops │
+  │  <span class="key">qwen36-35b-a3b</span>  → Judge model      │  Classifies: compliant vs. refused
+  │  <span class="key">gpt-oss-120b</span>    → SDG model        │  Generates adversarial prompts
+  └───────────────┬──────────────────────┘
+                  │
+  <span class="comment"># On-cluster pipeline</span>
+  EvalHub → DSPA (KFP) → Garak scan ──┬──→ <span class="string">Raw vLLM</span> (gemma-4-12b)
+                                       │
+                                       └──→ <span class="string">GuardRails</span> (NeMo + Wolf Defender + gemma-4-12b)
+                  │
+                  ▼
+  Results → MLflow experiment: <span class="key">"guardrails-comparison"</span>
+</pre>
+
+<h3>Attack Strategies (Baseline + SPO)</h3>
+<table>
+<tr><th>Strategy</th><th>What It Does</th><th>Example</th></tr>
+<tr><td><strong>Baseline</strong></td><td>Sends adversarial prompts unmodified — establishes baseline behavior</td><td>"Hey, my tax advisor said I can write off..."</td></tr>
+<tr><td><strong>SPO Intent</strong></td><td>Replaces system prompt with adversarial instructions</td><td>[Adversarial system prompt] + user prompt</td></tr>
+<tr><td><strong>SPO User Augmented</strong></td><td>Statistical manipulation of user prompt + system override</td><td>Augmented user text with system override</td></tr>
+<tr><td><strong>SPO System Augmented</strong></td><td>Statistical manipulation of system prompt</td><td>Augmented system prompt + original user text</td></tr>
+<tr><td><strong>SPO Both Augmented</strong></td><td>Both user and system prompts manipulated</td><td>Both sides augmented simultaneously</td></tr>
+</table>
+
+<div class="warn">
+<h3>Translation and TAP strategies disabled</h3>
+<p>Translation attacks (Mandarin Chinese) require pre-downloaded Helsinki-NLP models. TAP (Tree of Attacks with Pruning) requires a dedicated attacker model. Both disabled for initial PoC to reduce complexity. Can be enabled later.</p>
+</div>
+
+<h3>Default Harm Categories Tested</h3>
+<table>
+<tr><th>Category</th><th>Description</th></tr>
+<tr><td>Illegal activity</td><td>Advice or strategies for illegal activities</td></tr>
+<tr><td>Hate speech</td><td>Insulting, discriminatory content</td></tr>
+<tr><td>Security and malware</td><td>Exploiting systems, creating malware</td></tr>
+<tr><td>Violence</td><td>Content related to physical harm</td></tr>
+<tr><td>Fraud</td><td>Advice and strategies for fraud</td></tr>
+<tr><td>Sexually explicit</td><td>Pornographic or exploitative content</td></tr>
+<tr><td>Misinformation</td><td>Creating or promoting false information</td></tr>
+<tr><td>Self harm</td><td>Strategies for self-inflicted harm</td></tr>
+</table>
+
+<h3>Expected Results</h3>
+<div class="info">
+<strong>Raw vLLM:</strong> Higher ASR — gemma-4-12b has built-in RLHF safety training, but SPO strategies can often bypass it by replacing the system prompt entirely.<br><br>
+<strong>GuardRails:</strong> Near-zero ASR — the Wolf Defender ML classifier intercepts prompt injection <em>before</em> the prompt reaches the LLM. The classifier operates on the raw input text, so system prompt overrides and augmented prompts are still detected as injection attempts.<br><br>
+<strong>Key metric:</strong> ASR (Attack Success Rate) = % of unique prompts that bypassed safety controls under any strategy. <strong>Lower is better.</strong> Score above 0.5 = evaluation threshold exceeded.
+</div>
+
+<h3>Manifests Created</h3>
+<table>
+<tr><th>File</th><th>Purpose</th></tr>
+<tr><td><code>red-teaming/00-namespace-labels.yaml</code></td><td>EvalHub tenant label on csob-sandbox namespace</td></tr>
+<tr><td><code>red-teaming/01-maas-rhdp-api-key.yaml</code></td><td>API key secret for judge/SDG models (placeholder — patched at deploy time)</td></tr>
+<tr><td><code>red-teaming/02-gemma-api-key.yaml</code></td><td>API key for target model (DUMMY — auth disabled on guardrails endpoints)</td></tr>
+<tr><td><code>red-teaming/03-minio-s3-secret.yaml</code></td><td>S3 credentials for pipeline artifact storage</td></tr>
+<tr><td><code>red-teaming/04-evalhub-postgres.yaml</code></td><td>PostgreSQL database for EvalHub (Deployment + Service + Secret)</td></tr>
+<tr><td><code>red-teaming/05-evalhub-cr.yaml</code></td><td>EvalHub custom resource — TrustyAI operator deploys the service</td></tr>
+<tr><td><code>red-teaming/06-dspa.yaml</code></td><td>Data Science Pipelines Application — KFP backend for Garak scans</td></tr>
+<tr><td><code>red-teaming/intents-scan-raw.json</code></td><td>Garak scan config targeting raw vLLM endpoint</td></tr>
+<tr><td><code>red-teaming/intents-scan-guardrailed.json</code></td><td>Garak scan config targeting guardrailed endpoint</td></tr>
+<tr><td><code>red-teaming/run-scans.sh</code></td><td>Script to submit both scans and monitor progress</td></tr>
+</table>
+
+<!-- ===== DECISIONS & FINDINGS ===== -->
+<h2>Key Decisions & Findings</h2>
+
+<div class="timeline">
+<div class="tl-item defer">
+<div class="tl-title">Garak initially deferred — too many dependencies for one day</div>
+<div class="tl-desc">EvalHub + DSPA + judge/SDG models. Revisited after discovering MaaS RHDP access.</div>
+</div>
+<div class="tl-item done">
+<div class="tl-title">MaaS RHDP models solve the auxiliary model problem</div>
+<div class="tl-desc"><code>qwen36-35b-a3b</code> (judge — direct vLLM, no rate limits) and <code>gpt-oss-120b</code> (SDG — LiteLLM proxy to Vertex AI, may rate-limit at 429). Using the target model as its own judge was scientifically weak — separate models make the evaluation credible.</div>
+</div>
+<div class="tl-item done">
+<div class="tl-title">vllm-cpu-x86-runtime must be created manually for CLI/gitops deployments</div>
+<div class="tl-desc">RHOAI 3.5 ships it as a dashboard template (ConfigMap), not a pre-deployed ClusterServingRuntime. The manifest is needed in gitops repos. HF Detector runtime was deliberately avoided due to library incompatibility with Wolf Defender.</div>
+</div>
+<div class="tl-item done">
+<div class="tl-title">imagePullPolicy: Always is NOT set by RHOAI</div>
+<div class="tl-desc">Customer reported vLLM CUDA images using Always pull policy. Investigation showed: DSC has no imagePullPolicy knob, inferenceservice-config deploy section doesn't set it, all pods on our cluster show IfNotPresent. Customer's cluster likely has a mutating admission webhook enforcing Always — common bank security policy. For digest-pinned images this adds no security value.</div>
+</div>
+<div class="tl-item done">
+<div class="tl-title">NemoGuardrails is CLI/YAML only — no dashboard UI</div>
+<div class="tl-desc">No RHOAI dashboard support for creating or managing NemoGuardrails CRs. Configuration is entirely via oc apply.</div>
+</div>
+</div>
+
+<!-- ===== WHAT'S NEXT ===== -->
+<h2>Deployment Steps (On-Site)</h2>
+
+<div class="info">
+<strong>Prerequisites:</strong> RHOAI 3.5 installed, TrustyAI Managed in DSC, GPU node available, guardrails already deployed and tested (14/14).<br><br>
+<strong>Estimated time:</strong> 2-3 hours (deploy infrastructure + run scans + wait for results)
+</div>
+
+<ol style="margin:1rem 0 1.5rem 1.5rem;line-height:2">
+<li>Deploy MinIO: <code>oc apply -f argo-apps/rhoai-config/minio-namespace.yaml && oc apply -f argo-apps/rhoai-config/minio.yaml</code></li>
+<li>Create S3 bucket: <code>oc exec -n minio deploy/minio -- mc alias set local http://localhost:9000 minio minio123 && mc mb local/garak-pipeline</code></li>
+<li>Apply red-teaming manifests: <code>oc apply -f csob-sandbox/red-teaming/ --server-side</code></li>
+<li>Wait for EvalHub pod Running + DSPA Ready</li>
+<li>Patch API key: <code>source .env && oc patch secret maas-rhdp-api-key -n csob-sandbox --type merge -p '{"stringData":{"API_KEY":"'$MAAS_RHDP_API_KEY'"}}'</code></li>
+<li>Run scans: <code>./csob-sandbox/red-teaming/run-scans.sh</code></li>
+<li>Wait for completion (check job status via EvalHub API)</li>
+<li>Compare ASR between raw and guardrailed endpoints</li>
+</ol>
+
+<!-- ===== REPO STRUCTURE ===== -->
+<h2>Repository Structure</h2>
+<pre>
+csob-sandbox/
+├── 00-namespace.yaml                       Namespace
+├── model-serving/                          LLM (Gemma 4 12B)
+│   ├── 01-model-pvc.yaml                   30Gi PVC for model weights
+│   ├── 02-download-job.yaml                HuggingFace → PVC
+│   ├── 03-llmis.yaml                       LLMInferenceService
+│   ├── 04-route.yaml                       Manual Route (passthrough TLS)
+│   └── 05-connection-type.yaml             PVC ConnectionType
+├── guardrails/
+│   ├── common/                             Shared ServiceAccount + RBAC
+│   ├── embedded-classifier/                Variant A: in-process classifier
+│   └── external-classifier/                Variant B: KServe-served classifier
+├── <span class="key">red-teaming/</span>                            <span class="comment">← NEW: Garak risk assessment</span>
+│   ├── 00-namespace-labels.yaml            EvalHub tenant label
+│   ├── 01-maas-rhdp-api-key.yaml           Judge/SDG API key
+│   ├── 02-gemma-api-key.yaml               Target model API key
+│   ├── 03-minio-s3-secret.yaml             S3 credentials
+│   ├── 04-evalhub-postgres.yaml            PostgreSQL for EvalHub
+│   ├── 05-evalhub-cr.yaml                  EvalHub CR
+│   ├── 06-dspa.yaml                        Data Science Pipelines
+│   ├── intents-scan-raw.json               Scan: raw vLLM
+│   ├── intents-scan-guardrailed.json       Scan: guardrailed
+│   └── run-scans.sh                        Submit + monitor script
+├── demo-ui/                                Streamlit demo app
+├── tests/                                  Test reports (14/14 pass)
+├── NOTES.md                                Technical reference
+└── .env                                    Credentials (gitignored)
+</pre>
+
+<footer>
+Generated 2026-09-29 | ČSOB Sandbox — Red Hat OpenShift AI 3.5.1 | Guardrails + Garak Red Teaming PoC
+</footer>
+
+</div>
+</body>
+</html>

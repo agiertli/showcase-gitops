@@ -1,0 +1,24 @@
+{
+  "name": "owasp-guardrailed",
+  "model": {
+    "url": "http://csob-guard-external-classifier.csob-sandbox.svc.cluster.local/v1",
+    "name": "gemma-4-12b"
+  },
+  "benchmarks": [
+    {
+      "id": "owasp_llm_top10",
+      "provider_id": "garak",
+      "parameters": {
+        "garak_config": {
+          "system": {
+            "parallel_attempts": 16,
+            "parallel_requests": true
+          }
+        }
+      }
+    }
+  ],
+  "experiment": {
+    "name": "csob-red-teaming-v6"
+  }
+}

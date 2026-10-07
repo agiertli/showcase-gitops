@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: guardrails-demo-ui
+  namespace: csob-sandbox
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: guardrails-demo-ui-configmap-reader
+  namespace: csob-sandbox
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: guardrails-demo-ui-configmap-reader
+  namespace: csob-sandbox
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: guardrails-demo-ui-configmap-reader
+subjects:
+  - kind: ServiceAccount
+    name: guardrails-demo-ui
+    namespace: csob-sandbox
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: guardrails-demo-config
+  namespace: csob-sandbox
+data:
+  CLUSTER_DOMAIN: "apps.ocp.6rklz.sandbox744.opentlc.com"
+  NAMESPACE: "csob-sandbox"
+  VLLM_URL: "https://gemma-4-12b-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com"
+  EMBEDDED_URL: "https://csob-guard-embedded-classifier-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com"
+  EXTERNAL_URL: "https://csob-guard-external-classifier-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com"
+  EMBEDDED_ENGINE: "patronus-studio/wolf-defender-prompt-injection (in-process, engine: local)"
+  EXTERNAL_ENGINE: "patronus-studio/wolf-defender-prompt-injection (vLLM CPU, engine: vllm)"
+  EMBEDDED_CONFIGMAP: "nemo-guard-embedded"
+  EXTERNAL_CONFIGMAP: "nemo-guard-external"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guardrails-demo-ui
+  namespace: csob-sandbox
+  labels:
+    app: guardrails-demo-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: guardrails-demo-ui
+  template:
+    metadata:
+      labels:
+        app: guardrails-demo-ui
+    spec:
+      serviceAccountName: guardrails-demo-ui
+      containers:
+        - name: demo-ui
+          image: quay.io/agiertli/guardrails-demo-ui:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: guardrails-demo-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guardrails-demo-ui
+  namespace: csob-sandbox
+spec:
+  selector:
+    app: guardrails-demo-ui
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: guardrails-demo-ui
+  namespace: csob-sandbox
+  labels:
+    opendatahub.io/dashboard: "true"
+  annotations:
+    haproxy.router.openshift.io/timeout: "120s"
+spec:
+  to:
+    kind: Service
+    name: guardrails-demo-ui
+  port:
+    targetPort: 8080
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

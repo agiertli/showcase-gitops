@@ -1,0 +1,31 @@
+apiVersion: datasciencepipelinesapplications.opendatahub.io/v1
+kind: DataSciencePipelinesApplication
+metadata:
+  name: dspa
+  namespace: csob-sandbox
+spec:
+  dspVersion: v2
+  apiServer:
+    deploy: true
+    enableSamplePipeline: false
+  database:
+    mariaDB:
+      deploy: true
+      pipelineDBName: mlpipeline
+      pvcSize: 10Gi
+  objectStorage:
+    externalStorage:
+      basePath: ""
+      bucket: garak-pipeline
+      host: s4-service.csob-sandbox.svc.cluster.local:7480
+      port: ""
+      region: us-east-1
+      s3CredentialsSecret:
+        accessKey: AWS_ACCESS_KEY_ID
+        secretKey: AWS_SECRET_ACCESS_KEY
+        secretName: s4-credentials
+      scheme: http
+  persistenceAgent:
+    deploy: true
+  scheduledWorkflow:
+    deploy: true

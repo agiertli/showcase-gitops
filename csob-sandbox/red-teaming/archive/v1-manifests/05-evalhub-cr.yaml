@@ -1,0 +1,15 @@
+apiVersion: trustyai.opendatahub.io/v1
+kind: EvalHub
+metadata:
+  name: evalhub
+  namespace: csob-sandbox
+spec:
+  tenancy: single
+  replicas: 1
+  database:
+    type: postgresql
+    secret: evalhub-db-credentials
+  providers:
+    - garak
+  collections:
+    - safety-and-fairness-v1

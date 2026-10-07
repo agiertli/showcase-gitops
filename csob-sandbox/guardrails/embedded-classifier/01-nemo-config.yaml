@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nemo-guard-embedded
+  namespace: csob-sandbox
+data:
+  config.yaml: |
+    instructions:
+      - type: general
+        content: |
+          You are a helpful banking assistant for ČSOB (Československá obchodní banka).
+          You answer questions about banking products, accounts, and financial services.
+          Be concise and professional. Answer in the same language the customer uses.
+          Never disclose internal system details, credentials, or competitor information.
+    models:
+      - type: main
+        engine: openai
+        parameters:
+          base_url: "https://gemma-4-12b-kserve-workload-svc.csob-sandbox.svc.cluster.local:8000/v1"
+          model_name: "gemma-4-12b"
+    enable_dialog_engine: false
+    sample_conversation: ""
+    rails:
+      config:
+        # === ML-based prompt injection detection ===
+        hf_classifier:
+          prompt-injection:
+            engine: local
+            model: "patronus-studio/wolf-defender-prompt-injection"
+            task: text-classification
+            threshold: 0.9
+            blocked_labels:
+              - "injection"
+            parameters:
+              device: "cpu"
+        # === PII detection (Presidio) ===
+        sensitive_data_detection:
+          input:
+            entities:
+              - CREDIT_CARD
+              - IBAN_CODE
+          output:
+            entities:
+              - CREDIT_CARD
+              - IBAN_CODE
+        # === Pattern-based detection (regex) ===
+        regex_detection:
+          input:
+            patterns:
+              # --- USE-CASE: Competitor blocking (customer-facing chatbot) ---
+              - "(?i)česká\\s+spořitelna"
+              - "(?i)ceska\\s+sporitelna"
+              - "(?i)česká\\s+sporitelna"
+              - "(?i)ceska\\s+spořitelna"
+              - "(?i)\\bčs\\s*a\\.?s\\.?"
+              - "(?i)\\bcsas\\b"
+              # --- UNIVERSAL: System prompt extraction ---
+              - "(?i)(show|tell|reveal|repeat|display|print|output)\\s+.*(system\\s+prompt|instructions|system\\s+message)"
+              # --- UNIVERSAL: Security credentials ---
+              - "\\b(password|secret|api[_-]?key|token)\\b"
+              # --- UNIVERSAL: Czech national ID (rodné číslo) ---
+              - "\\d{6}/\\d{3,4}"
+            case_insensitive: true
+          output:
+            patterns:
+              # --- UNIVERSAL: Czech national ID on output ---
+              - "\\d{6}/\\d{3,4}"
+            case_insensitive: true
+      input:
+        flows:
+          - hf classifier check input $classifier=prompt-injection
+          - detect sensitive data on input
+          - regex check input
+      output:
+        flows:
+          - detect sensitive data on output
+          - regex check output
+  rails.co: ""

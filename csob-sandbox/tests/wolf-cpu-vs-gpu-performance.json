@@ -1,0 +1,41 @@
+{
+  "model": "patronus-studio/wolf-defender-prompt-injection",
+  "architecture": "ModernBERT (sequence classification, ~1.2 GB)",
+  "workload": "Garak OWASP LLM Top 10 (max_concurrency=10, 69 probes)",
+  "cpu": {
+    "runtime": "vllm-cpu-x86 (Red Hat vLLM CPU image)",
+    "replicas": 7,
+    "total_requests": 4332,
+    "successful": 3852,
+    "errors": 480,
+    "error_rate_pct": 11.1,
+    "latency_ms": {
+      "min": 100,
+      "avg": 8336,
+      "median": 300,
+      "p95": 59500,
+      "p99": 59900,
+      "max": 60000
+    }
+  },
+  "gpu": {
+    "runtime": "vllm-cuda (Red Hat vLLM CUDA image, NVIDIA L4 24GB)",
+    "replicas": 1,
+    "total_requests": 8662,
+    "successful": 8662,
+    "errors": 0,
+    "error_rate_pct": 0.0,
+    "latency_ms": {
+      "min": 100,
+      "avg": 480,
+      "median": 300,
+      "p95": 1000,
+      "p99": 3300,
+      "max": 30500
+    }
+  },
+  "speedup": {
+    "avg_latency": "17x",
+    "p99_latency": "18x"
+  }
+}

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gemma-api-key
+  namespace: csob-sandbox
+type: Opaque
+stringData:
+  API_KEY: "DUMMY"

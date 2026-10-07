@@ -1,0 +1,20 @@
+apiVersion: trustyai.opendatahub.io/v1
+kind: EvalHub
+metadata:
+  name: evalhub
+  namespace: {{ include "evalhub-infra.namespace" . }}
+spec:
+  tenancy: single
+  replicas: 1
+  database:
+    type: postgresql
+    secret: evalhub-db-credentials
+  providers:
+    {{- toYaml .Values.evalhub.providers | nindent 4 }}
+  collections:
+    {{- toYaml .Values.evalhub.collections | nindent 4 }}
+  {{- if .Values.evalhub.mlflowTrackingUri }}
+  env:
+    - name: MLFLOW_TRACKING_URI
+      value: {{ .Values.evalhub.mlflowTrackingUri | quote }}
+  {{- end }}

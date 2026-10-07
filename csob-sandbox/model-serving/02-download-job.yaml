@@ -1,0 +1,72 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: download-gemma-4-12b
+  namespace: csob-sandbox
+spec:
+  backoffLimit: 4
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app: model-downloader
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: downloader
+          image: registry.redhat.io/ubi9/python-312:latest
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          command:
+            - bash
+            - -c
+            - |
+              set -e
+              echo "=== Installing huggingface_hub ==="
+              pip install -q huggingface_hub 2>&1
+
+              echo "=== Starting model download ==="
+              python3 -c "
+              from huggingface_hub import snapshot_download
+              snapshot_download(
+                  repo_id='RedHatAI/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir='/mnt/models/gemma-4-12B-it-FP8-Dynamic',
+                  local_dir_use_symlinks=False,
+                  resume_download=True
+              )
+              print('Download complete.')
+              "
+
+              echo "=== Contents ==="
+              ls -lh /mnt/models/gemma-4-12B-it-FP8-Dynamic/
+              du -sh /mnt/models/gemma-4-12B-it-FP8-Dynamic/
+          env:
+            - name: HF_HUB_CACHE
+              value: /tmp/hf-cache
+            - name: TRANSFORMERS_CACHE
+              value: /tmp/hf-cache
+          volumeMounts:
+            - name: model-storage
+              mountPath: /mnt/models
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: gemma-4-12b-model
+        - name: tmp
+          emptyDir:
+            sizeLimit: 20Gi

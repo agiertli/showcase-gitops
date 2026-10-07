@@ -2,3 +2,8 @@ test-maas.sh
 test-mlflow-tracing-*.py
 test-muse-glimmer-vision.py
 .maas-api-key
+.env
+csob-sandbox/.env
+github-secret.yaml
+vision-test.sh
+globex.yaml

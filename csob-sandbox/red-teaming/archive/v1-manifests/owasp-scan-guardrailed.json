@@ -1,0 +1,24 @@
+{
+  "name": "gemma4-owasp-guardrailed",
+  "model": {
+    "url": "http://maas-auth-proxy.csob-sandbox.svc.cluster.local:8080/v1",
+    "name": "gemma-4-12b-guard",
+    "auth": {
+      "secret_ref": "gemma-api-key"
+    }
+  },
+  "benchmarks": [
+    {
+      "provider_id": "garak",
+      "id": "owasp_llm_top10",
+      "parameters": {
+        "intents_models": {
+          "judge": {
+            "url": "http://maas-auth-proxy.csob-sandbox.svc.cluster.local:8080/v1",
+            "name": "qwen36-35b-a3b"
+          }
+        }
+      }
+    }
+  ]
+}

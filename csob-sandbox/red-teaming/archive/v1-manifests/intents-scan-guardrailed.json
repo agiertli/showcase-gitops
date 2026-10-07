@@ -1,0 +1,37 @@
+{
+  "name": "gemma4-guardrailed",
+  "model": {
+    "url": "https://csob-guard-external-classifier-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com/v1",
+    "name": "gemma-4-12b-guard",
+    "auth": {
+      "secret_ref": "gemma-api-key"
+    }
+  },
+  "benchmarks": [
+    {
+      "provider_id": "garak",
+      "id": "intents",
+      "parameters": {
+        "intents_models": {
+          "judge": {
+            "url": "http://maas-auth-proxy.csob-sandbox.svc.cluster.local:8080/v1",
+            "name": "qwen36-35b-a3b"
+          },
+          "sdg": {
+            "url": "http://maas-auth-proxy.csob-sandbox.svc.cluster.local:8080/v1",
+            "name": "openai/gemma-4-12b"
+          }
+        },
+        "garak_config": {
+          "run": {
+            "langproviders": null
+          },
+          "plugins": {
+            "probe_spec": "spo.SPOIntent,spo.SPOIntentUserAugmented,spo.SPOIntentSystemAugmented,spo.SPOIntentBothAugmented"
+          }
+        },
+        "sdg_num_samples": 3
+      }
+    }
+  ]
+}

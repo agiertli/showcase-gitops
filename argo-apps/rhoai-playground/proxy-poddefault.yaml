@@ -1,0 +1,17 @@
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: proxy-config
+  namespace: rhoai-playground
+spec:
+  selector:
+    matchLabels: {}
+  env:
+    - name: https_proxy
+      value: "http://proxy.example.com:8080"
+    - name: HTTPS_PROXY
+      value: "http://proxy.example.com:8080"
+    - name: no_proxy
+      value: ".svc,.cluster.local,10.0.0.0/8,172.30.0.0/16"
+    - name: NO_PROXY
+      value: ".svc,.cluster.local,10.0.0.0/8,172.30.0.0/16"

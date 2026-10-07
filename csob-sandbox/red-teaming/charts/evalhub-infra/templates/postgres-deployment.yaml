@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: evalhub-postgres
+  namespace: {{ include "evalhub-infra.namespace" . }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: evalhub-postgres
+  template:
+    metadata:
+      labels:
+        app: evalhub-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: {{ .Values.postgres.image }}
+          env:
+            - name: POSTGRESQL_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: POSTGRESQL_PASSWORD
+              value: {{ .Values.postgres.password | quote }}
+            - name: POSTGRESQL_DATABASE
+              value: {{ .Values.postgres.database | quote }}
+          ports:
+            - containerPort: 5432
+          resources:
+            requests:
+              cpu: {{ .Values.postgres.resources.requests.cpu }}
+              memory: {{ .Values.postgres.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.postgres.resources.limits.cpu }}
+              memory: {{ .Values.postgres.resources.limits.memory }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/pgsql/data
+      volumes:
+        - name: data
+          {{- if .Values.postgres.pvc.enabled }}
+          persistentVolumeClaim:
+            claimName: evalhub-postgres-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

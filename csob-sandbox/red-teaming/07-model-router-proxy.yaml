@@ -1,0 +1,200 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-router-script
+  namespace: csob-sandbox
+data:
+  proxy.py: |
+    """Model-routing proxy for Garak intents scans.
+    Routes requests based on the 'model' field in the JSON body:
+    - gemma-4-12b → target model endpoint (KServe, cluster-internal)
+    - gemma-4-12b-guard → NemoGuardrails endpoint (rewrites model to gemma-4-12b)
+    - qwen36-35b-a3b / gpt-oss-120b → RHDP MaaS (with API key injection)
+    """
+    import http.server
+    import socketserver
+    import json
+    import ssl
+    import os
+    import urllib.request
+    import urllib.error
+    import threading
+
+    RHDP_URL = os.environ.get("RHDP_URL", "https://maas-rhdp.apps.maas.redhatworkshops.io")
+    RHDP_KEY = os.environ.get("RHDP_API_KEY", "")
+    TARGET_POOL_URL = os.environ.get("TARGET_URL", "http://gemma-pool.csob-sandbox.svc.cluster.local:8000")
+    TARGET_ORIG_URL = os.environ.get("TARGET_ORIG_URL", "https://gemma-4-12b-kserve-workload-svc.csob-sandbox.svc.cluster.local:8000")
+    TARGET_KEY = os.environ.get("TARGET_API_KEY", "")
+    import random
+    GUARD_URL = os.environ.get("GUARD_URL", "https://csob-guard-external-classifier-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com")
+    GUARD_KEY = os.environ.get("GUARD_API_KEY", "")
+
+    RHDP_MODELS = {"qwen36-35b-a3b", "gpt-oss-120b"}
+    GUARD_MODELS = {"gemma-4-12b-guard"}
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    # No throttling: NemoGuardrails (3 replicas) → gemma pool (3 instances) + Wolf (3 replicas)
+    # Proxy only rewrites model name gemma-4-12b-guard → gemma-4-12b
+    # TARGET pool: 3 additional vLLM instances behind gemma-pool Service (HTTP, internal)
+    # No throttling needed — 4 total gemma instances handle garak's max_concurrency=10
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length)
+            try:
+                data = json.loads(body)
+            except json.JSONDecodeError:
+                data = {}
+
+            model = data.get("model", "")
+            import time as _time
+            t0 = _time.time()
+
+            if model in RHDP_MODELS:
+                base = RHDP_URL
+                key = RHDP_KEY
+                route = "RHDP"
+            elif model in GUARD_MODELS:
+                base = GUARD_URL
+                key = GUARD_KEY
+                route = "GUARD"
+                data["model"] = "gemma-4-12b"
+                stripped = data.pop("stop", None)
+                if stripped:
+                    print(f"[proxy] stripped 'stop' param from GUARD request (NemoGuardrails bug workaround)", flush=True)
+                body = json.dumps(data).encode()
+            else:
+                base = random.choice([TARGET_POOL_URL, TARGET_POOL_URL, TARGET_POOL_URL, TARGET_ORIG_URL])
+                key = TARGET_KEY
+                route = "TARGET"
+
+            url = base.rstrip("/") + self.path
+            headers = {"Content-Type": "application/json"}
+            if key:
+                headers["Authorization"] = f"Bearer {key}"
+
+            print(f"[proxy] model={model} route={route} → {base}", flush=True)
+
+            req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+            try:
+                resp = urllib.request.urlopen(req, context=ctx, timeout=120)
+                resp_body = resp.read()
+                elapsed = _time.time() - t0
+                self.send_response(resp.status)
+                for h in ["Content-Type"]:
+                    v = resp.getheader(h)
+                    if v:
+                        self.send_header(h, v)
+                self.end_headers()
+                self.wfile.write(resp_body)
+                print(f"[proxy] model={model} route={route} → {resp.status} ({elapsed:.1f}s)", flush=True)
+            except urllib.error.HTTPError as e:
+                resp_body = e.read()
+                elapsed = _time.time() - t0
+                self.send_response(e.code)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(resp_body)
+                print(f"[proxy] model={model} route={route} → HTTP {e.code} ({elapsed:.1f}s)", flush=True)
+            except Exception as e:
+                elapsed = _time.time() - t0
+                self.send_response(502)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                print(f"[proxy] model={model} route={route} → ERROR: {e} ({elapsed:.1f}s)", flush=True)
+            finally:
+                pass
+
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"status":"ok"}')
+
+        def log_message(self, fmt, *args):
+            model = getattr(self, '_model', '')
+            print(f"[proxy] {self.address_string()} {fmt % args}")
+
+    class ThreadedServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
+        daemon_threads = True
+
+    if __name__ == "__main__":
+        server = ThreadedServer(("0.0.0.0", 8080), Handler)
+        print(f"Model router listening on :8080 (threaded)")
+        print(f"  RHDP models: {RHDP_MODELS} → {RHDP_URL}")
+        print(f"  Guard models: {GUARD_MODELS} → {GUARD_URL}")
+        print(f"  Other models → pool={TARGET_POOL_URL}, orig={TARGET_ORIG_URL}")
+        server.serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: maas-auth-proxy
+  namespace: csob-sandbox
+  labels:
+    app: maas-auth-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: maas-auth-proxy
+  template:
+    metadata:
+      labels:
+        app: maas-auth-proxy
+    spec:
+      containers:
+        - name: proxy
+          image: registry.redhat.io/ubi9/python-312:latest
+          command: ["python3", "/opt/proxy/proxy.py"]
+          ports:
+            - containerPort: 8080
+          env:
+            - name: RHDP_URL
+              value: "https://maas-rhdp.apps.maas.redhatworkshops.io"
+            - name: TARGET_URL
+              value: "http://gemma-pool.csob-sandbox.svc.cluster.local:8000"
+            - name: GUARD_URL
+              value: "https://csob-guard-external-classifier-csob-sandbox.apps.ocp.6rklz.sandbox744.opentlc.com"
+            - name: RHDP_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: rhdp-model-auth
+                  key: api-key
+            - name: TARGET_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gemma-api-key
+                  key: API_KEY
+          volumeMounts:
+            - name: script
+              mountPath: /opt/proxy
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: script
+          configMap:
+            name: model-router-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: maas-auth-proxy
+  namespace: csob-sandbox
+spec:
+  selector:
+    app: maas-auth-proxy
+  ports:
+    - port: 8080
+      targetPort: 8080
