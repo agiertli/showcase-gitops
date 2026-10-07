@@ -23,7 +23,7 @@
         "intents_models": {
           "judge": {
             "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
-            "name": "openai/gemma-4-12b"
+            "name": "gemma-4-12b"
           },
           "sdg": {
             "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
