@@ -33,19 +33,23 @@
         "sdg_num_samples": 5,
         "garak_config": {
           "system": {
-            "parallel_attempts": 16,
+            "parallel_attempts": 32,
             "parallel_requests": true
           },
           "run": {
+            "generations": 1,
             "langproviders": null
           },
           "plugins": {
             "probe_spec": "spo.SPOIntent,spo.SPOIntentUserAugmented,spo.SPOIntentSystemAugmented,spo.SPOIntentBothAugmented,tap.TAPIntent",
             "probes": {
-              "tap.TAPIntent": {
-                "depth": 3,
-                "width": 5,
-                "branching_factor": 2
+              "tap": {
+                "TAPIntent": {
+                  "depth": 1,
+                  "width": 3,
+                  "branching_factor": 1,
+                  "attack_max_attempts": 1
+                }
               }
             }
           }
