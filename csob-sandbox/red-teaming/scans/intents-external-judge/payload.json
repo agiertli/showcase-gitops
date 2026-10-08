@@ -2,24 +2,13 @@
   "name": "intents-external-judge",
   "model": {
     "url": "http://gemma-pool.csob-sandbox.svc.cluster.local:8000/v1",
-    "name": "gemma-4-12b",
-    "auth": {
-      "secret_ref": "intents-model-auth"
-    }
+    "name": "gemma-4-12b"
   },
   "benchmarks": [
     {
       "id": "intents",
-      "provider_id": "garak-kfp",
+      "provider_id": "garak",
       "parameters": {
-        "kfp_config": {
-          "endpoint": "https://ds-pipeline-dspa.csob-sandbox.svc.cluster.local:8888",
-          "namespace": "csob-sandbox",
-          "s3_secret_name": "s4-credentials",
-          "s3_endpoint": "http://s4-service.csob-sandbox.svc.cluster.local:7480",
-          "s3_bucket": "garak-pipeline",
-          "verify_ssl": false
-        },
         "intents_models": {
           "judge": {
             "url": "https://maas-rhdp.apps.maas.redhatworkshops.io/v1",
